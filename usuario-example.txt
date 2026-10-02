@@ -1,0 +1,2 @@
+usuario - nome-informado-no-raspberry
+senha 
