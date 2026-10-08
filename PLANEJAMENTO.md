@@ -31,7 +31,7 @@ sensord.py (systemd)
 └── PAJ7620 (I2C) → troca de páginas / ações no MM²
 
 Briefing diário
-Tarefa agendada do Claude (nuvem) → e-mail p/ nickbriefingdiario@gmail.com
+Tarefa agendada do Claude (nuvem) → e-mail p/ nickbriefingdiariamente@gmail.com
   (PDF anexo + bloco <<MIRROR>>...<<END>> no corpo)
 → briefing.py no Pi (cron, IMAP + senha de app) → JSON → módulo MMM-Briefing
 ```
