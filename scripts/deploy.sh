@@ -3,6 +3,9 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Dependências do sistema
+command -v wlrctl > /dev/null || sudo apt install -y wlrctl
+
 # Módulos de terceiros (clona se ainda não existir)
 MM_MODULES="$HOME/MagicMirror/modules"
 for url in \
