@@ -113,19 +113,27 @@ O MM² fica clonado separadamente em `~/MagicMirror`; o `deploy.sh` cria links s
 - [ ] `briefing.py` (IMAP → JSON) + cron
 - [ ] Módulo `MMM-Briefing`
 
-### Fase 5 — Sensores
+### Fase 5 — App de tarefas + Google Agenda
+- [ ] Definir o modelo de dados (título, tipo, data/horário, links, progresso %, anotações, área, status, recorrência)
+- [ ] Backend FastAPI + SQLite (Pydantic para validação)
+- [ ] Interface web responsiva (computador e celular)
+- [ ] Sincronização app → Google Agenda (conta de serviço, agenda dedicada; link do item na descrição do evento)
+- [ ] Decidir a hospedagem (nuvem gratuita × Pi + Tailscale)
+- [ ] Página 3 do espelho: módulo de calendário lendo o iCal privado da agenda
+
+### Fase 6 — Sensores
 - [ ] Soldar o PAJ7620 (técnico; pinos saindo pelo verso, lado sem o sensor)
 - [ ] Testar PIR e PAJ7620 na bancada (`i2cdetect -y 1`)
 - [ ] `sensord.py` como serviço (tela on/off + gestos)
 
-### Fase 6 — Montagem física
+### Fase 7 — Montagem física
 - [ ] Medir o corpo do monitor
 - [ ] Vidro espelho dupla via 3–4 mm (menor transmissão de luz)
 - [ ] Moldura: ~32–33 cm de largura, 8–9 cm de profundidade, rodapé p/ Pi + carregador + filtro de linha, furos p/ PIR (topo) e PAJ7620 (base), ventilação
 - [ ] Mascaramento com papel adesivo preto fosco (recorte de 24 × 42 cm)
 - [ ] Fixação do monitor via VESA (parafusos M4)
 
-### Fase 7 — Ajuste fino
+### Fase 8 — Ajuste fino
 - [ ] Sensibilidade e tempo do PIR, limiares de gesto
 - [ ] Temperatura com a moldura fechada (< 70 °C)
 
@@ -139,3 +147,7 @@ O MM² fica clonado separadamente em `~/MagicMirror`; o `deploy.sh` cria links s
 - Monitor TN/1000:1: fundo 100% preto e textos brancos; o PIR apaga a tela sem presença.
 - Ao apagar a tela, o monitor mostra "sem sinal" por 3–5 s (aceitável).
 - Nunca desligar o Pi da tomada sem `sudo shutdown now`.
+
+
+## Ideias futuras
+- Página de corrida: treinos recentes e evolução de pace (Strava).

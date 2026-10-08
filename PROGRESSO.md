@@ -3,14 +3,28 @@
 Registro do que foi feito, atualizado a cada etapa. Mais recente no topo.
 
 ---
+## 08/10/2026
 
+### Fase 2: Autostart ✅
+- [x] `systemd/magicmirror.service`: servidor do MM², reinicia sozinho se cair
+- [x] `scripts/kiosk.sh`: espera o servidor → aguarda 15 s → rotação 270 a 60 Hz → Chromium em quiosque
+- [x] `labwc/autostart`: abre só o quiosque (desktop desativado)
+- [x] Repo clonado no Pi em `~/magic-mirror`; `scripts/deploy.sh` cria os links e instala o serviço
+- [x] Estrutura do repo reorganizada (código na raiz), `.gitattributes` com LF e scripts executáveis
+- [x] Corrigida a tela branca no boot (Chromium abria antes da GPU estabilizar → `sleep 15`)
+- [x] Reboot validado: o espelho sobe sozinho em retrato, sem notebook
+
+**Fluxo de atualização:** editar no notebook → push → no Pi: `cd ~/magic-mirror && git pull`
+(reiniciar o serviço ou dar reboot conforme o que mudou)
+
+---
 ## 08/10/2026
 
 ### Em andamento — Fase 2: Autostart
 - [x] Criado `/etc/systemd/system/magicmirror.service` (servidor do MM², reinicia sozinho se cair)
 - [x] Criado `~/bin/kiosk.sh` (espera o servidor → rotação 270 a 60 Hz → Chromium em quiosque)
 - [x] Criado `~/.config/labwc/autostart` (abre só o quiosque; desktop desativado para economizar RAM)
-- [ ] Testar `sudo reboot` e confirmar que o espelho sobe sozinho em retrato
+- [x] Testar `sudo reboot` e confirmar que o espelho sobe sozinho em retrato
 - [ ] Mover `magicmirror.service` e `kiosk.sh` para o repositório
 
 ### Documentação
