@@ -1,0 +1,14 @@
+[Unit]
+Description=MagicMirror server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=nickferraz
+WorkingDirectory=/home/nickferraz/MagicMirror
+ExecStart=/usr/bin/npm run server
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
