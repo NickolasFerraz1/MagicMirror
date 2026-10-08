@@ -1,0 +1,4 @@
+/* Esconde o cursor do mouse no espelho */
+* {
+  cursor: none !important;
+}
