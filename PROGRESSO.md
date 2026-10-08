@@ -5,6 +5,18 @@ Registro do que foi feito, atualizado a cada etapa. Mais recente no topo.
 ---
 ## 08/10/2026
 
+### Fase 3: Base do espelho ✅ (layout real virá com os módulos)
+- [x] `mm-config/config.js` no repo, linkado em `~/MagicMirror/config/`
+- [x] pt-BR, formato 24 h, clima de Americana (Open-Meteo, por coordenadas)
+- [x] Cabeçalho fixo: relógio + data à esquerda, clima atual à direita, indicador de página no rodapé
+- [x] 4 páginas com MMM-pages (Início, Briefing, Agenda, Cotações), com placeholders e rotação de teste de 20 s
+- [x] `deploy.sh` instala MMM-pages e MMM-page-indicator e o `wlrctl` automaticamente
+- [x] Desktop e barra de tarefas desativados no `kiosk.sh` (pkill do lwrespawn, pcmanfm e wf-panel)
+- [x] Cursor escondido: `custom.css` (`cursor: none`) + `wlrctl pointer move` após o Chromium carregar
+
+---
+## 08/10/2026
+
 ### Fase 2: Autostart ✅
 - [x] `systemd/magicmirror.service`: servidor do MM², reinicia sozinho se cair
 - [x] `scripts/kiosk.sh`: espera o servidor → aguarda 15 s → rotação 270 a 60 Hz → Chromium em quiosque

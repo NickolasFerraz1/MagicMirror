@@ -1,42 +1,33 @@
-# Magic Mirror — status (01/10/2026)
+# Próximos passos
 
-## Ambiente do Pi
-- Raspberry Pi 3B+ | Raspberry Pi OS 64-bit (Debian 13 Trixie) | Wayland (labwc)
-- Hostname: magicmirror | Usuário: nickferraz | IP: 192.168.1.236 | SSH ativo
-- Alimentação OK com carregador 5V/4,1A (throttled=0x0)
-- I2C ativado | Node 22 | MagicMirror² v2.38.0 em ~/MagicMirror
+_Atualizado em 08/10/2026 (fim da sessão)_
 
-## Decisões técnicas
-- Electron NÃO funciona (GPU do Pi 3 só tem OpenGL ES 2.0; Electron 44 exige ES 3.0).
-  Solução: MM² em modo servidor + Chromium em quiosque.
-- config.js: address "0.0.0.0" + ipWhitelist da rede 192.168.1.x
-  (remover a entrada IPv6 inválida, se ainda não removeu)
-- Tela: saída HDMI-A-1, 1600x900@60Hz, rotação 270 (portas à direita, retrato)
-- Clima: Open-Meteo (padrão, sem chave de API)
-- Briefing: tarefa diária do Claude envia e-mail para nickbriefingdiario@gmail.com
-  com PDF anexo + bloco <<MIRROR>>...<<END>> no corpo.
-  O Pi lê via IMAP + senha de app (sem Gemini, sem API paga).
-- Sensores: PIR HC-SR501 (presença, liga/desliga tela) + PAJ7620 (gestos)
+## Onde paramos
+- Fases 1, 2 e 3 (base) concluídas: o Pi liga e o espelho sobe sozinho em retrato, em pt-BR, com relógio, clima de Americana, 4 páginas (placeholders) em rotação de teste e cursor escondido.
+- O repo é a fonte da verdade. Fluxo: editar no notebook → commit/push → no Pi: `cd ~/magic-mirror && git pull` (+ `./scripts/deploy.sh` se houver arquivo/link novo) → `sudo reboot`.
 
-## Como subir manualmente (até criar os serviços)
-Terminal 1:  cd ~/MagicMirror && npm run server
-Terminal 2:  WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 chromium --ozone-platform=wayland --password-store=basic --kiosk --noerrdialogs --disable-infobars http://localhost:8080
-Rotação:     WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 wlr-randr --output HDMI-A-1 --mode 1600x900@60 --transform 270
+## Como retomar
+1. Ligar o Pi na tomada e esperar o espelho subir (~1–2 min).
+2. No notebook: `ssh nickferraz@192.168.1.236`
+3. `cd ~/magic-mirror && git pull`
 
-## Próximos passos
-1. Criar serviços systemd (magicmirror.service + mirror-kiosk.service com rotação)
-2. Personalizar config.js: pt-BR, clima de Americana, remover feriados EUA e elogios
-3. Validar o bloco <<MIRROR>> no e-mail + gerar senha de app na conta do briefing
-4. Escrever briefing.py (IMAP → JSON) + módulo MMM-Briefing
-5. Sensores (quando chegarem): soldar o PAJ7620 com técnico (pinos saindo pelo VERSO,
-   lado sem o sensor) → sensord.py como serviço
-6. Medir o corpo do monitor → encomendar vidro (menor transmissão) e moldura
-   (~32-33 cm de largura, 8-9 cm de profundidade, rodapé, furos p/ sensores e ventilação)
+## Próxima sessão: Fase 4 (briefing)
+1. **Definir o novo formato do bloco no e-mail**: trocar `<<MIRROR>>` por um JSON com, por notícia: categoria, título curto (≤ 55 caracteres, página 1) e resumo completo (página 2).
+2. **Atualizar o prompt da tarefa diária do Claude** com o novo formato e rodar uma vez manualmente para validar.
+3. **Gerar senha de app** na conta do briefing (exige verificação em 2 etapas ativa).
+4. **`briefing/briefing.py`**: IMAP → extrai o JSON → valida com Pydantic → salva `briefing.json`. Se o JSON vier inválido, mantém o briefing anterior.
+5. **Agendamento**: timer do systemd (ex.: 7h), versionado em `systemd/`.
+6. **Módulo `modules/MMM-Briefing`**: manchetes na página 0 e notícia completa por tema na página 1.
 
-## Compras
-- AliExpress (a caminho): PAJ7620, 2x PIR, jumpers F-F 20 cm, dissipadores,
-  leitor de cartão, termorretrátil
-- Mercado Livre: cabo C13 90° (saída pelo lado do N), adaptador HDMI lateral Vention,
-  fita VHB, papel adesivo preto fosco, abraçadeiras, álcool isopropílico
-- Pendentes: filtro de linha (ver o de casa), parafusos M4 VESA (depois),
-  cabo HDMI curto (opcional)
+## Fases seguintes
+- **Fase 5: App de tarefas + Google Agenda**: FastAPI + SQLite na nuvem gratuita; sincroniza com o Google Agenda via conta de serviço; o espelho lê o iCal privado. Antes de codar: definir o modelo de dados.
+- **Cotações**: módulo próprio (AwesomeAPI para USD/EUR/BTC; pesquisar fonte gratuita para o Ibovespa). Página 0 com as 4 principais; página 3 com lista configurável e minigráfico de 30 dias.
+- **Sensores** (quando chegarem do AliExpress): soldar o PAJ7620 com técnico (pinos saindo pelo VERSO, lado sem o sensor) → testar na bancada → `sensord.py`. Depois, desligar a rotação de teste (`timings: { default: 0 }`).
+- **Montagem física**: medir o corpo do monitor → vidro (menor transmissão de luz) e moldura.
+
+## Pendências e lembretes
+- Compras pendentes: fita isolante, filtro de linha (ver o de casa; checar o comprimento do cabo até a tomada), parafusos M4 VESA (depois), cabo HDMI curto (opcional).
+- Ao chegar: conferir o adaptador HDMI Vention (saída para baixo) e o cabo C13 90° (saída pelo lado do N).
+- Ideia futura: página de corrida (Strava).
+- Repo público: nunca commitar senhas/chaves (`.env` e `config.env` estão no `.gitignore`).
+- Sempre desligar com `sudo shutdown now` antes de tirar da tomada.
