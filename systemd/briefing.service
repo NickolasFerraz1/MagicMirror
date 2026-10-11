@@ -1,0 +1,10 @@
+[Unit]
+Description=Atualiza o briefing do espelho (IMAP -> data/briefing.json)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nickferraz
+WorkingDirectory=/home/nickferraz/magic-mirror
+ExecStart=/usr/bin/python3 /home/nickferraz/magic-mirror/briefing/briefing.py

@@ -1,0 +1,10 @@
+[Unit]
+Description=Verifica o briefing a cada hora (06h-23h)
+
+[Timer]
+OnCalendar=*-*-* 06..23:05:00
+OnBootSec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -24,8 +24,14 @@ mkdir -p "$HOME/bin" "$HOME/.config/labwc"
 ln -sf "$REPO/scripts/kiosk.sh" "$HOME/bin/kiosk.sh"
 ln -sf "$REPO/labwc/autostart" "$HOME/.config/labwc/autostart"
 
+# Dependências do sistema
+python3 -c "import pydantic" 2>/dev/null || sudo apt install -y python3-pydantic
+
 # Units do systemd são copiadas (mais robusto que link)
 sudo install -m 644 "$REPO/systemd/magicmirror.service" /etc/systemd/system/
+sudo install -m 644 "$REPO/systemd/briefing.service" /etc/systemd/system/
+sudo install -m 644 "$REPO/systemd/briefing.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
+sudo systemctl enable --now briefing.timer
 
 echo "Deploy concluído."

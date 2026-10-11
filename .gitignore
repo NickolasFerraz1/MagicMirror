@@ -3,3 +3,5 @@ usuario.txt
 config.env
 __pycache__/
 node_modules/
+data/*
+data/
