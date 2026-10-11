@@ -4,7 +4,7 @@
  *
  * Páginas (índice MMM-pages):
  *   0 Início | 1 Briefing | 2 Agenda | 3 Cotações
- * Os placeholders (helloworld) serão trocados pelos módulos reais nas próximas fases.
+ * Placeholders (helloworld) restantes: Agenda e Cotações.
  */
 
 let config = {
@@ -58,6 +58,15 @@ let config = {
 		},
 
 		// ---------- Página 0: Início ----------
+		// Coluna esquerda (abaixo do relógio): agenda do dia — placeholder até a Fase 5
+		{
+			module: "helloworld",
+			position: "top_left",
+			classes: "page0",
+			header: "Hoje",
+			config: { text: "Próximas tarefas (em breve)" }
+		},
+		// Coluna direita (abaixo do clima): previsão
 		{
 			module: "weather",
 			position: "top_right",
@@ -66,6 +75,7 @@ let config = {
 			config: {
 				weatherProvider: "openmeteo",
 				type: "forecast",
+				appendLocationNameToHeader: false,
 				lat: -22.7392,
 				lon: -47.3314,
 				maxNumberOfDays: 4,
@@ -74,18 +84,26 @@ let config = {
 			}
 		},
 		{
-			module: "helloworld",
-			position: "middle_center",
+			module: "MMM-Briefing",
+			position: "upper_third",
 			classes: "page0",
-			config: { text: "Início — resumo (agenda, manchetes, cotações)" }
+			config: { mode: "headlines" }
+		},
+		// Faixa de cotações — placeholder até o módulo de cotações
+		{
+			module: "helloworld",
+			position: "upper_third",
+			classes: "page0",
+			header: "Cotações",
+			config: { text: "USD · EUR · BTC · IBOV (em breve)" }
 		},
 
 		// ---------- Página 1: Briefing ----------
 		{
-			module: "helloworld",
-			position: "middle_center",
+			module: "MMM-Briefing",
+			position: "upper_third",
 			classes: "page1",
-			config: { text: "Briefing — notícias completas por tema" }
+			config: { mode: "reader" }
 		},
 
 		// ---------- Página 2: Agenda ----------
@@ -111,9 +129,9 @@ let config = {
 				modules: [["page0"], ["page1"], ["page2"], ["page3"]],
 				fixed: ["fixed"],
 				animationTime: 500,
-				// Rotação automática só para testes (20 s por página).
-				// Trocar para { default: 0 } quando os gestos estiverem ativos.
-				timings: { default: 20000 }
+				// Sem rotação automática: troca por teclado (PageUp/PageDown) e,
+				// depois, pelos gestos do PAJ7620.
+				timings: { default: 0 }
 			}
 		}
 	]

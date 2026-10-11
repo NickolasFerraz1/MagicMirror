@@ -18,6 +18,7 @@ done
 # Config do MagicMirror²
 ln -sf "$REPO/mm-config/config.js" "$HOME/MagicMirror/config/config.js"
 ln -sf "$REPO/mm-config/custom.css" "$HOME/MagicMirror/css/custom.css"
+ln -sfn "$REPO/modules/MMM-Briefing" "$HOME/MagicMirror/modules/MMM-Briefing"
 
 # Quiosque e autostart
 mkdir -p "$HOME/bin" "$HOME/.config/labwc"

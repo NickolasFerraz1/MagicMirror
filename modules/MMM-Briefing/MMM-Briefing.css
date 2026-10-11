@@ -1,0 +1,71 @@
+/* Cores por tema (acento discreto, legível atrás do espelho) */
+.briefing .cat-IA  { --accent: #b3a1ff; }
+.briefing .cat-TEC { --accent: #6cc8ff; }
+.briefing .cat-ECO { --accent: #6fe39a; }
+.briefing .cat-POL { --accent: #ffc861; }
+
+.briefing { text-align: left; color: #ccc; }
+.briefing__catname {
+	color: var(--accent, #999);
+	font-size: 15px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	margin-bottom: 6px;
+}
+.briefing__date { color: #777; font-size: 15px; }
+
+/* ---------- Início: manchetes ---------- */
+/* Cabeçalho no mesmo estilo dos módulos padrão ("HOJE", "PRÓXIMOS DIAS") */
+.briefing__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	border-bottom: 1px solid #666;
+	padding-bottom: 5px;
+	margin-bottom: 16px;
+	font-size: 15px;
+	text-transform: uppercase;
+}
+.briefing__title { color: #999; }
+.briefing__cat { margin-bottom: 20px; }
+.briefing__headline {
+	color: #fff;
+	font-size: 24px;
+	line-height: 1.3;
+	padding-left: 12px;
+	border-left: 2px solid var(--accent);
+	margin-bottom: 6px;
+}
+
+/* ---------- Briefing: leitor ---------- */
+.briefing__tabs { display: flex; gap: 22px; margin-bottom: 36px; }
+.briefing__tab {
+	font-size: 18px;
+	letter-spacing: 0.1em;
+	color: #555;
+	padding-bottom: 6px;
+	border-bottom: 2px solid transparent;
+}
+.briefing__tab.is-active { color: var(--accent); border-bottom-color: var(--accent); }
+.briefing__articletitle {
+	color: #fff;
+	font-size: 40px;
+	line-height: 1.2;
+	font-weight: 400;
+	margin: 0 0 24px;
+}
+.briefing__resumo {
+	color: #ddd;
+	font-size: 28px;
+	line-height: 1.5;
+	margin: 0 0 20px;
+}
+.briefing__fonte { color: #888; font-size: 18px; font-style: italic; }
+.briefing__dots { display: flex; gap: 10px; margin: 36px 0 12px; }
+.briefing__dots span {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #444;
+}
+.briefing__dots span.is-active { background: #fff; }

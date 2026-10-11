@@ -1,4 +1,41 @@
-/* Esconde o cursor do mouse no espelho */
+/* ================================================================
+ * Magic Mirror — layout em retrato (1600x900 girado → 900x1600)
+ *
+ *  ┌───────────────────────────────┐
+ *  │ Relógio          Clima agora  │  top_left / top_right (fixos)
+ *  │ Hoje (agenda)    Próx. dias   │  top_left / top_right (página 0)
+ *  ├───────────────────────────────┤
+ *  │ Conteúdo principal da página  │  upper_third, ancorado a 28%
+ *  │ (Início: briefing + cotações) │  e crescendo para baixo
+ *  │                               │
+ *  │            • ○ ○ ○            │  bottom_bar (indicador)
+ *  └───────────────────────────────┘
+ * ================================================================ */
+
+:root {
+	--gap-modules: 36px;
+}
+
+/* Esconde o cursor do mouse */
 * {
-  cursor: none !important;
+	cursor: none !important;
+}
+
+/* Por padrão o upper_third fica CENTRALIZADO em 33% da altura e cresce
+ * para cima e para baixo, invadindo o topo. Aqui ele passa a começar
+ * em 28% e crescer só para baixo. */
+.region.upper.third {
+	top: 28%;
+	transform: none;
+}
+
+/* Previsão dos próximos dias: mais compacta, alinhada ao clima atual */
+.region.top.right .weather table.small {
+	font-size: 18px;
+}
+
+/* Cabeçalhos dos blocos centrais alinhados à esquerda, como os do topo */
+.region.upper.third .module-header,
+.region.upper.third .module-content {
+	text-align: left;
 }
