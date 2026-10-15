@@ -41,9 +41,9 @@ Module.register("MMM-Briefing", {
 			const res = await fetch("MMM-Briefing/data", { cache: "no-store" }); // rota do node_helper
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const text = await res.text();
-			if (text === this.raw) return; // nada mudou
-			this.raw = text;
+			if (text === this.raw && this.rendered) return; // nada mudou
 			this.applyData(JSON.parse(text));
+			this.raw = text; // só marca como lido depois de aplicar com sucesso
 		} catch (err) {
 			Log.warn(`[MMM-Briefing] não foi possível carregar o briefing: ${err.message}`);
 		}
@@ -57,6 +57,12 @@ Module.register("MMM-Briefing", {
 	},
 
 	notificationReceived(notification) {
+		// Se os dados chegaram antes de o DOM existir (comum no Pi, mais lento),
+		// redesenha assim que o MagicMirror² terminar de montar a página.
+		if (notification === "DOM_OBJECTS_CREATED") {
+			this.rendered = true;
+			if (this.briefing) this.updateDom(0);
+		}
 		if (this.config.mode !== "reader") return;
 		const moves = {
 			BRIEFING_NEXT_ITEM: [1, 0],
