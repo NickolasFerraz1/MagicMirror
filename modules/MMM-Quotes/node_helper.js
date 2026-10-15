@@ -1,11 +1,14 @@
 /* MMM-Quotes — busca cotações no servidor e entrega ao front por HTTP.
  *
- * Fontes (gratuitas):
+ * Fontes (gratuitas, sem chave obrigatória):
  *   awesome → AwesomeAPI (moedas e cripto em BRL). Token opcional: AWESOMEAPI_TOKEN no .env
- *   yahoo   → Yahoo Finance chart API (índices/ações, ex.: ^BVSP). Sem chave (não oficial).
+ *   yahoo   → Yahoo Finance chart API (índices, ações, metais). Não oficial.
  *
- * Cache: cotação 5 min, histórico (minigráfico) 1 h — o front pode pedir a cada minuto
- * sem gastar requisições das APIs.
+ * Rota: GET /MMM-Quotes/data?s=<JSON dos ativos>&range=none|1mo|6mo|1y
+ *   range=none → só cotação e variação do dia
+ *   range=...  → também o histórico [{ t, v }] do período (minigráficos e gráfico grande)
+ *
+ * Cache: cotação 5 min; histórico 1 h por período.
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -14,6 +17,7 @@ const NodeHelper = require("node_helper");
 const QUOTE_TTL = 5 * 60 * 1000;
 const HISTORY_TTL = 60 * 60 * 1000;
 const TIMEOUT = 10 * 1000;
+const RANGES = { "1mo": 30, "6mo": 180, "1y": 360 }; // dias (AwesomeAPI)
 
 // Lê o .env do repo (mesmo arquivo do briefing.py) sem sobrescrever o ambiente.
 function loadDotenv(file) {
@@ -32,45 +36,59 @@ async function getJson(url, headers = {}) {
 }
 
 // ---------- Fontes ----------
+// quote(spec)          → { price, changePct, time }
+// history(spec, range) → [{ t: ms, v: número }] do mais antigo para o mais novo
 const providers = {
-	async awesome(spec, withHistory) {
-		const token = process.env.AWESOMEAPI_TOKEN ? `?token=${process.env.AWESOMEAPI_TOKEN}` : "";
-		const base = "https://economia.awesomeapi.com.br/json";
-		const last = await getJson(`${base}/last/${spec.pair}${token}`);
-		const q = last[spec.pair.replace("-", "")];
-		if (!q) throw new Error(`par ${spec.pair} ausente na resposta`);
-		const out = { price: Number(q.bid), changePct: Number(q.pctChange), time: q.create_date };
-		if (withHistory) {
-			const daily = await getJson(`${base}/daily/${spec.pair}/30${token}`);
-			// Vem do mais recente para o mais antigo.
-			out.history = daily.map((d) => Number(d.bid)).filter(Number.isFinite).reverse();
+	awesome: {
+		token: () => (process.env.AWESOMEAPI_TOKEN ? `?token=${process.env.AWESOMEAPI_TOKEN}` : ""),
+		async quote(spec) {
+			const last = await getJson(`https://economia.awesomeapi.com.br/json/last/${spec.pair}${this.token()}`);
+			const q = last[spec.pair.replace("-", "")];
+			if (!q) throw new Error(`par ${spec.pair} ausente na resposta`);
+			return { price: Number(q.bid), changePct: Number(q.pctChange), time: q.create_date };
+		},
+		async history(spec, range) {
+			const daily = await getJson(`https://economia.awesomeapi.com.br/json/daily/${spec.pair}/${RANGES[range]}${this.token()}`);
+			return daily
+				.map((d) => ({ t: Number(d.timestamp) * 1000, v: Number(d.bid) }))
+				.filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v))
+				.reverse(); // a API devolve do mais novo para o mais antigo
 		}
-		return out;
 	},
 
-	async yahoo(spec) {
-		const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(spec.symbol)}?range=1mo&interval=1d`;
-		const data = await getJson(url, { "User-Agent": "Mozilla/5.0 (MagicMirror)" });
-		const r = data.chart?.result?.[0];
-		if (!r) throw new Error(data.chart?.error?.description || "resposta vazia");
-		const closes = (r.indicators?.quote?.[0]?.close || []).filter(Number.isFinite);
-		const price = r.meta?.regularMarketPrice ?? closes.at(-1);
-		// Variação do dia: preço atual contra o fechamento anterior.
-		const prev = closes.length >= 2 ? closes.at(-2) : r.meta?.previousClose;
-		return {
-			price,
-			changePct: prev ? ((price - prev) / prev) * 100 : null,
-			time: r.meta?.regularMarketTime ? new Date(r.meta.regularMarketTime * 1000).toISOString() : null,
-			history: closes
-		};
+	yahoo: {
+		async chart(spec, range) {
+			const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(spec.symbol)}?range=${range}&interval=1d`;
+			const data = await getJson(url, { "User-Agent": "Mozilla/5.0 (MagicMirror)" });
+			const r = data.chart?.result?.[0];
+			if (!r) throw new Error(data.chart?.error?.description || "resposta vazia");
+			const closes = r.indicators?.quote?.[0]?.close || [];
+			const points = (r.timestamp || [])
+				.map((t, i) => ({ t: t * 1000, v: closes[i] }))
+				.filter((p) => Number.isFinite(p.v));
+			return { meta: r.meta || {}, points };
+		},
+		async quote(spec) {
+			const { meta, points } = await this.chart(spec, "5d");
+			const price = meta.regularMarketPrice ?? points.at(-1)?.v;
+			// Variação do dia: preço atual contra o fechamento do pregão anterior.
+			const prev = points.length >= 2 ? points.at(-2).v : meta.previousClose;
+			return {
+				price,
+				changePct: prev ? ((price - prev) / prev) * 100 : null,
+				time: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null
+			};
+		},
+		async history(spec, range) {
+			return (await this.chart(spec, range)).points;
+		}
 	}
 };
 
 module.exports = NodeHelper.create({
 	start() {
-		this.cache = new Map(); // id → { data, quoteAt, historyAt }
+		this.cache = new Map(); // chave → { at, value }
 
-		// O front manda a lista de ativos na URL (?s=JSON) e recebe as cotações.
 		this.expressApp.get("/MMM-Quotes/data", async (req, res) => {
 			res.set("Cache-Control", "no-store");
 			let specs;
@@ -79,33 +97,40 @@ module.exports = NodeHelper.create({
 			} catch {
 				return res.status(400).json({ error: "parâmetro s inválido" });
 			}
-			const results = await Promise.all(specs.map((s) => this.get(s, req.query.history === "1")));
-			res.json(results);
+			const range = RANGES[req.query.range] ? req.query.range : null;
+			res.json(await Promise.all(specs.map((s) => this.get(s, range))));
 		});
 	},
 
-	async get(spec, withHistory) {
-		const key = `${spec.source}:${spec.pair || spec.symbol}`;
-		const entry = this.cache.get(key) || {};
-		const now = Date.now();
-		const fresh = now - (entry.quoteAt || 0) < QUOTE_TTL;
-		const historyFresh = !withHistory || now - (entry.historyAt || 0) < HISTORY_TTL;
-		if (entry.data && fresh && historyFresh) return { id: spec.id, ...entry.data };
-
+	/** Busca com cache; em falha devolve o último valor conhecido (stale). */
+	async cached(key, ttl, fetcher) {
+		const entry = this.cache.get(key);
+		if (entry && Date.now() - entry.at < ttl) return { value: entry.value };
 		try {
-			const provider = providers[spec.source];
-			if (!provider) throw new Error(`fonte desconhecida: ${spec.source}`);
-			const data = await provider(spec, withHistory && !historyFresh);
-			if (!data.history && entry.data?.history) data.history = entry.data.history;
-			entry.data = data;
-			entry.quoteAt = now;
-			if (withHistory && !historyFresh) entry.historyAt = now;
-			this.cache.set(key, entry);
-			return { id: spec.id, ...data };
+			const value = await fetcher();
+			this.cache.set(key, { at: Date.now(), value });
+			return { value };
 		} catch (err) {
-			console.warn(`[MMM-Quotes] ${spec.id}: ${err.message}`);
-			// Falhou: devolve o último valor conhecido, marcado como desatualizado.
-			return entry.data ? { id: spec.id, ...entry.data, stale: true } : { id: spec.id, error: err.message };
+			if (entry) return { value: entry.value, stale: true, error: err.message };
+			return { error: err.message };
 		}
+	},
+
+	async get(spec, range) {
+		const provider = providers[spec.source];
+		if (!provider) return { id: spec.id, error: `fonte desconhecida: ${spec.source}` };
+		const id = `${spec.source}:${spec.pair || spec.symbol}`;
+
+		const quote = await this.cached(`q:${id}`, QUOTE_TTL, () => provider.quote(spec));
+		const out = { id: spec.id, ...(quote.value || {}) };
+		if (quote.stale) out.stale = true;
+		if (!quote.value) out.error = quote.error;
+
+		if (range) {
+			const hist = await this.cached(`h:${id}:${range}`, HISTORY_TTL, () => provider.history(spec, range));
+			if (hist.value) out.history = hist.value;
+		}
+		if (out.error) console.warn(`[MMM-Quotes] ${spec.id}: ${out.error}`);
+		return out;
 	}
 });

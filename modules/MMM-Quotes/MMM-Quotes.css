@@ -11,19 +11,54 @@
 .quotes--strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .quotes--strip .quotes__price { font-size: 26px; line-height: 1.25; }
 
-/* ---------- Lista (página Cotações) ---------- */
-.quotes--list .quotes__item {
+/* ---------- Página Cotações ---------- */
+.quotes__tabs { display: flex; gap: 26px; margin-bottom: 24px; }
+.quotes__tab {
+	font-size: 18px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: #555;
+	padding-bottom: 6px;
+	border-bottom: 2px solid transparent;
+}
+.quotes__tab.is-active { color: #fff; border-bottom-color: #fff; }
+
+.quotes__list .quotes__item {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 18px 0;
+	padding: 18px 16px;
 	border-bottom: 1px solid #222;
+	border-left: 3px solid transparent;
 }
-.quotes--list .quotes__info { display: grid; grid-template-columns: 1fr auto; column-gap: 24px; flex: 1; }
-.quotes--list .quotes__label { grid-column: 1 / -1; margin-bottom: 4px; }
-.quotes--list .quotes__price { font-size: 38px; line-height: 1.1; }
-.quotes--list .quotes__pct { font-size: 22px; align-self: end; padding-bottom: 4px; }
+.quotes__list .quotes__item.is-selected { border-left-color: #fff; background: #111; }
+.quotes__list .quotes__info { display: grid; grid-template-columns: 1fr auto; column-gap: 24px; flex: 1; }
+.quotes__list .quotes__label { grid-column: 1 / -1; margin-bottom: 4px; }
+.quotes__list .quotes__price { font-size: 38px; line-height: 1.1; }
+.quotes__list .quotes__pct { font-size: 22px; align-self: end; padding-bottom: 4px; }
+
 .quotes__spark { width: 180px; height: 46px; margin-left: 32px; flex: none; }
 .quotes__spark polyline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .quotes__spark.up polyline { stroke: var(--up); }
 .quotes__spark.down polyline { stroke: var(--down); }
+
+/* ---------- Gráfico aberto ---------- */
+.quotes__bigprice { color: #fff; font-size: 64px; line-height: 1.1; margin: 4px 0 6px; }
+.quotes__changes { display: flex; gap: 24px; margin-bottom: 22px; }
+.quotes__changes .quotes__pct { font-size: 22px; }
+.quotes__ranges { display: flex; gap: 10px; margin-bottom: 18px; }
+.quotes__range { font-size: 18px; color: #777; padding: 4px 14px; border-radius: 16px; }
+.quotes__range.is-active { color: #fff; background: #2a2a2a; }
+
+.quotes__chart { width: 100%; height: auto; display: block; }
+.quotes__grid { stroke: #2a2a2a; stroke-width: 1; }
+.quotes__axis { fill: #888; font-size: 18px; font-family: var(--font-primary), sans-serif; }
+.quotes__line { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.quotes__line.up { stroke: var(--up); }
+.quotes__line.down { stroke: var(--down); }
+.quotes__cursor { stroke: #555; stroke-width: 1; stroke-dasharray: 3 4; }
+.quotes__dot.up { fill: var(--up); }
+.quotes__dot.down { fill: var(--down); }
+.quotes__stop-top.up { stop-color: var(--up); stop-opacity: 0.28; }
+.quotes__stop-top.down { stop-color: var(--down); stop-opacity: 0.28; }
+.quotes__stop-bottom { stop-color: #000; stop-opacity: 0; }

@@ -7,21 +7,28 @@
  * Placeholders (helloworld) restantes: Agenda (coluna "Hoje" e página 2).
  */
 
-// Ativos principais: aparecem na faixa da página Início e no topo da página Cotações.
-const QUOTES_MAIN = [
-	{ id: "USD", label: "Dólar", source: "awesome", pair: "USD-BRL" },
-	{ id: "EUR", label: "Euro", source: "awesome", pair: "EUR-BRL" },
-	{ id: "BTC", label: "Bitcoin", source: "awesome", pair: "BTC-BRL" },
-	{ id: "IBOV", label: "Ibovespa", source: "yahoo", symbol: "^BVSP", unit: "pts" }
-];
+// ---------- Cotações ----------
+// Moeda/cripto → { id, label, source: "awesome", pair: "XXX-BRL" }
+// Índice/ação/metal → { id, label, source: "yahoo", symbol: "^BVSP" }
+//   unit: "pts" para índices · currency: "USD" para cotar em dólar
+const Q = {
+	USD: { id: "USD", label: "Dólar", source: "awesome", pair: "USD-BRL" },
+	EUR: { id: "EUR", label: "Euro", source: "awesome", pair: "EUR-BRL" },
+	BTC: { id: "BTC", label: "Bitcoin", source: "awesome", pair: "BTC-BRL" },
+	GOLD: { id: "GOLD", label: "Ouro · onça", source: "yahoo", symbol: "GC=F", currency: "USD" },
+	SILVER: { id: "SILVER", label: "Prata · onça", source: "yahoo", symbol: "SI=F", currency: "USD" },
+	IBOV: { id: "IBOV", label: "Ibovespa", source: "yahoo", symbol: "^BVSP", unit: "pts" }
+};
 
-// Ativos extras: só na página Cotações. Para incluir, siga o formato:
-//   moeda/cripto → { id, label, source: "awesome", pair: "XXX-BRL" }
-//   índice/ação  → { id, label, source: "yahoo", symbol: "PETR4.SA" }  (unit: "pts" para índices)
-const QUOTES_EXTRA = [
-	// { id: "GBP", label: "Libra", source: "awesome", pair: "GBP-BRL" },
-	// { id: "ETH", label: "Ethereum", source: "awesome", pair: "ETH-BRL" },
-	// { id: "SPX", label: "S&P 500", source: "yahoo", symbol: "^GSPC", unit: "pts" },
+// Faixa da página Início
+const QUOTES_MAIN = [Q.USD, Q.EUR, Q.BTC, Q.IBOV];
+
+// Abas da página Cotações (para incluir ativos, acrescente em Q e na categoria)
+const QUOTES_CATEGORIES = [
+	{ id: "moedas", label: "Moedas", symbols: [Q.USD, Q.EUR] },
+	{ id: "cripto", label: "Cripto", symbols: [Q.BTC] },
+	{ id: "metais", label: "Metais", symbols: [Q.GOLD, Q.SILVER] },
+	{ id: "indices", label: "Índices", symbols: [Q.IBOV] }
 ];
 
 let config = {
@@ -136,8 +143,8 @@ let config = {
 			module: "MMM-Quotes",
 			position: "upper_third",
 			classes: "page3",
-			header: "Cotações · 30 dias",
-			config: { mode: "list", symbols: [...QUOTES_MAIN, ...QUOTES_EXTRA] }
+			header: "Cotações",
+			config: { mode: "explorer", categories: QUOTES_CATEGORIES }
 		},
 
 		// ---------- Controle de páginas ----------
