@@ -53,7 +53,11 @@ Module.register("MMM-Briefing", {
 		const sameDay = this.briefing && this.briefing.data === payload.data;
 		this.briefing = payload;
 		if (!sameDay) this.cat = this.item = 0;
-		this.updateDom(300);
+		// Sem animação (velocidade 0): uma atualização animada espera o fim do
+		// "fade out" para trocar o conteúdo, e se o MMM-pages esconder/mostrar o
+		// módulo nesse meio-tempo, o MagicMirror² cancela esse timer e a troca
+		// nunca acontece (era o "Aguardando briefing…" preso no Pi).
+		this.updateDom(0);
 	},
 
 	notificationReceived(notification) {
@@ -109,7 +113,7 @@ Module.register("MMM-Briefing", {
 				this.item = cats[this.cat].noticias.length - 1;
 			}
 		}
-		this.updateDom(200);
+		this.updateDom(0); // mesmo motivo do applyData
 	},
 
 	// ---------- Renderização ----------
