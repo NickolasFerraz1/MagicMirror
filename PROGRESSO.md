@@ -1,6 +1,17 @@
 # Magic Mirror — Progresso
 
 Registro do que foi feito, atualizado a cada etapa. Mais recente no topo.
+---
+
+## 15/10/2026
+
+### Fase 4: Briefing ✅ (deploy no Pi)
+- [x] `deploy.sh` reescrito: pydantic via apt, link do MMM-Briefing, custom.css em `config/`, timer do briefing
+- [x] `.env` copiado para o Pi via scp; `briefing.service` validado no Pi
+- [x] Bug no Pi: manchetes presas em "Aguardando briefing…". Causa: `updateDom` animado tinha o timer cancelado
+      pelo MMM-pages durante a montagem das páginas (Pi lento). Correção: `updateDom(0)`. Reproduzido e validado
+      simulando CPU 6× mais lenta.
+- [x] `scripts/cdp-eval.mjs`: diagnóstico do Chromium do espelho via DevTools Protocol (porta 9222)
 
 ---
 ## 08/10/2026

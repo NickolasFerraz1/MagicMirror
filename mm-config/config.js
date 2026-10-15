@@ -4,8 +4,25 @@
  *
  * Páginas (índice MMM-pages):
  *   0 Início | 1 Briefing | 2 Agenda | 3 Cotações
- * Placeholders (helloworld) restantes: Agenda e Cotações.
+ * Placeholders (helloworld) restantes: Agenda (coluna "Hoje" e página 2).
  */
+
+// Ativos principais: aparecem na faixa da página Início e no topo da página Cotações.
+const QUOTES_MAIN = [
+	{ id: "USD", label: "Dólar", source: "awesome", pair: "USD-BRL" },
+	{ id: "EUR", label: "Euro", source: "awesome", pair: "EUR-BRL" },
+	{ id: "BTC", label: "Bitcoin", source: "awesome", pair: "BTC-BRL" },
+	{ id: "IBOV", label: "Ibovespa", source: "yahoo", symbol: "^BVSP", unit: "pts" }
+];
+
+// Ativos extras: só na página Cotações. Para incluir, siga o formato:
+//   moeda/cripto → { id, label, source: "awesome", pair: "XXX-BRL" }
+//   índice/ação  → { id, label, source: "yahoo", symbol: "PETR4.SA" }  (unit: "pts" para índices)
+const QUOTES_EXTRA = [
+	// { id: "GBP", label: "Libra", source: "awesome", pair: "GBP-BRL" },
+	// { id: "ETH", label: "Ethereum", source: "awesome", pair: "ETH-BRL" },
+	// { id: "SPX", label: "S&P 500", source: "yahoo", symbol: "^GSPC", unit: "pts" },
+];
 
 let config = {
 	address: "0.0.0.0",
@@ -89,13 +106,13 @@ let config = {
 			classes: "page0",
 			config: { mode: "headlines" }
 		},
-		// Faixa de cotações — placeholder até o módulo de cotações
+		// Faixa de cotações
 		{
-			module: "helloworld",
+			module: "MMM-Quotes",
 			position: "upper_third",
 			classes: "page0",
 			header: "Cotações",
-			config: { text: "USD · EUR · BTC · IBOV (em breve)" }
+			config: { mode: "strip", symbols: QUOTES_MAIN }
 		},
 
 		// ---------- Página 1: Briefing ----------
@@ -116,10 +133,11 @@ let config = {
 
 		// ---------- Página 3: Cotações ----------
 		{
-			module: "helloworld",
-			position: "middle_center",
+			module: "MMM-Quotes",
+			position: "upper_third",
 			classes: "page3",
-			config: { text: "Cotações — moedas e Ibovespa" }
+			header: "Cotações · 30 dias",
+			config: { mode: "list", symbols: [...QUOTES_MAIN, ...QUOTES_EXTRA] }
 		},
 
 		// ---------- Controle de páginas ----------

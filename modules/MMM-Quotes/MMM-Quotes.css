@@ -1,0 +1,29 @@
+.quotes { --up: #6fe39a; --down: #ff7a7a; color: #ccc; text-align: left; }
+.quotes__label { color: #999; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; }
+.quotes__price { color: #fff; }
+.quotes__pct { font-size: 18px; }
+.quotes__pct.up { color: var(--up); }
+.quotes__pct.down { color: var(--down); }
+.quotes__pct.flat { color: #888; }
+.quotes__item.is-stale .quotes__price { color: #888; }
+
+/* ---------- Faixa (página Início) ---------- */
+.quotes--strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.quotes--strip .quotes__price { font-size: 26px; line-height: 1.25; }
+
+/* ---------- Lista (página Cotações) ---------- */
+.quotes--list .quotes__item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 18px 0;
+	border-bottom: 1px solid #222;
+}
+.quotes--list .quotes__info { display: grid; grid-template-columns: 1fr auto; column-gap: 24px; flex: 1; }
+.quotes--list .quotes__label { grid-column: 1 / -1; margin-bottom: 4px; }
+.quotes--list .quotes__price { font-size: 38px; line-height: 1.1; }
+.quotes--list .quotes__pct { font-size: 22px; align-self: end; padding-bottom: 4px; }
+.quotes__spark { width: 180px; height: 46px; margin-left: 32px; flex: none; }
+.quotes__spark polyline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.quotes__spark.up polyline { stroke: var(--up); }
+.quotes__spark.down polyline { stroke: var(--down); }
