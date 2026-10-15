@@ -7,7 +7,7 @@
  * Navegação do leitor (notificações; o sensord.py vai enviá-las):
  *   BRIEFING_NEXT_ITEM / BRIEFING_PREV_ITEM          → notícia seguinte/anterior
  *   BRIEFING_NEXT_CATEGORY / BRIEFING_PREV_CATEGORY  → tema seguinte/anterior
- * Teclado (testes no navegador): ←/→ notícia, ↑/↓ tema, PageUp/PageDown página.
+ * Teclado (testes no navegador): ←/→ notícia, ↑/↓ tema. (Troca de página: MMM-Nav.)
  */
 Module.register("MMM-Briefing", {
 	defaults: {
@@ -82,14 +82,10 @@ Module.register("MMM-Briefing", {
 			ArrowRight: () => this.step(1, 0),
 			ArrowLeft: () => this.step(-1, 0),
 			ArrowDown: () => this.step(0, 1),
-			ArrowUp: () => this.step(0, -1),
-			PageDown: () => this.sendNotification("PAGE_INCREMENT"),
-			PageUp: () => this.sendNotification("PAGE_DECREMENT")
+			ArrowUp: () => this.step(0, -1)
 		};
 		document.addEventListener("keydown", (e) => {
-			if (!keys[e.key]) return;
-			const isPageKey = e.key.startsWith("Page");
-			if (!isPageKey && this.hidden) return; // só navega com a página visível
+			if (!keys[e.key] || this.hidden) return; // só navega com a página visível
 			e.preventDefault();
 			keys[e.key]();
 		});

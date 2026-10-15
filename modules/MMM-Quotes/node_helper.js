@@ -22,7 +22,7 @@ const TIMEOUT = 10 * 1000;
 // Períodos: dias de fechamento (AwesomeAPI) e intervalo das velas (Yahoo)
 const RANGES = {
 	"1d": { interval: "5m", intraday: true },
-	"5d": { interval: "30m", intraday: true },
+	"5d": { interval: "60m", intraday: true }, // 60m: intervalo aceito por todos os tipos de ativo (inclusive cripto)
 	"1mo": { days: 30, interval: "1d" },
 	"6mo": { days: 180, interval: "1d" },
 	"1y": { days: 360, interval: "1d" }

@@ -80,11 +80,21 @@ Module.register("MMM-Quotes", {
 		if (range === "1mo" || this.detailHistory[key]) return this.updateDom(0);
 		try {
 			const [q] = await this.request([sym], range);
-			if (q.history) this.detailHistory[key] = q.history;
+			if (q.history?.length) this.detailHistory[key] = q.history;
+			else this.failed(key, q.error || "sem dados");
 		} catch (err) {
-			Log.warn(`[MMM-Quotes] histórico ${key}: ${err.message}`);
+			this.failed(key, err.message);
 		}
 		this.updateDom(0);
+	},
+
+	/** Marca o período como indisponível; libera nova tentativa em 5 min. */
+	failed(key, reason) {
+		Log.warn(`[MMM-Quotes] histórico ${key}: ${reason}`);
+		this.detailHistory[key] = "failed";
+		setTimeout(() => {
+			if (this.detailHistory[key] === "failed") delete this.detailHistory[key];
+		}, 5 * 60 * 1000);
 	},
 
 	historyFor(sym) {
@@ -207,9 +217,9 @@ Module.register("MMM-Quotes", {
 		const H = 440;
 		const pad = { l: 8, r: 96, t: 16, b: 40 };
 		const root = this.svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "quotes__chart" });
-		if (!history || history.length < 2) {
+		if (!Array.isArray(history) || history.length < 2) {
 			const t = this.svg("text", { x: W / 2, y: H / 2, "text-anchor": "middle", class: "quotes__axis" });
-			t.textContent = "Carregando histórico…";
+			t.textContent = history === "failed" ? "Histórico indisponível para este período" : "Carregando histórico…";
 			root.appendChild(t);
 			return root;
 		}
@@ -323,7 +333,7 @@ Module.register("MMM-Quotes", {
 
 		const changes = this.el("div", "quotes__changes");
 		changes.appendChild(this.el("span", `quotes__pct ${this.trend(q.changePct)}`, `${this.formatPct(q.changePct)} hoje`));
-		if (history?.length > 1 && this.RANGES[this.range].id !== "1d") { // no 1D seria igual ao "hoje"
+		if (Array.isArray(history) && history.length > 1 && this.RANGES[this.range].id !== "1d") { // no 1D seria igual ao "hoje"
 			const periodPct = ((history.at(-1).v - history[0].v) / history[0].v) * 100;
 			changes.appendChild(this.el("span", `quotes__pct ${this.trend(periodPct)}`, `${this.formatPct(periodPct)} ${this.RANGES[this.range].text}`));
 		}

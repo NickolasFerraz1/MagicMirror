@@ -19,6 +19,7 @@ done
 # Módulos próprios
 ln -sfn "$REPO/modules/MMM-Briefing" "$MM_MODULES/MMM-Briefing"
 ln -sfn "$REPO/modules/MMM-Quotes" "$MM_MODULES/MMM-Quotes"
+ln -sfn "$REPO/modules/MMM-Nav" "$MM_MODULES/MMM-Nav"
 
 # Config do MagicMirror² (a 2.38 lê o custom.css de config/, não de css/)
 ln -sf "$REPO/mm-config/config.js" "$HOME/MagicMirror/config/config.js"

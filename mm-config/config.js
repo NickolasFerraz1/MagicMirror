@@ -150,11 +150,16 @@ let config = {
 
 		// ---------- Controle de páginas ----------
 		{
+			module: "MMM-Nav" // teclado/gestos → troca de página com proteção contra rajadas
+		},
+		{
 			module: "MMM-pages",
 			config: {
 				modules: [["page0"], ["page1"], ["page2"], ["page3"]],
-				fixed: ["fixed"],
-				animationTime: 500,
+				fixed: ["fixed", "MMM-Nav"],
+				// 0 = troca instantânea. Com animação, trocar de página rápido (ou por
+				// gesto) podia deixar um módulo da página anterior visível.
+				animationTime: 0,
 				// Sem rotação automática: troca por teclado (PageUp/PageDown) e,
 				// depois, pelos gestos do PAJ7620.
 				timings: { default: 0 }
