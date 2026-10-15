@@ -4,7 +4,8 @@
  * mode: "explorer" → página Cotações: categorias em abas, lista com minigráficos e,
  *                    ao abrir um ativo, gráfico grande com escolha de período
  *
- * Ativo: { id, label, source: "awesome", pair: "USD-BRL" }
+ * Ativo: { id, label, source: "awesome", pair: "USD-BRL", yahoo: "USDBRL=X" }
+ *        (yahoo: símbolo equivalente, usado só nos gráficos de 1D e 5D)
  *        { id, label, source: "yahoo", symbol: "^BVSP", unit: "pts" }
  *        currency: "USD" para cotar em dólar (padrão: BRL)
  *
@@ -24,10 +25,14 @@ Module.register("MMM-Quotes", {
 	},
 
 	RANGES: [
+		{ id: "1d", label: "1D", text: "no dia", intraday: true },
+		{ id: "5d", label: "5D", text: "em 5 dias", intraday: true },
 		{ id: "1mo", label: "1M", text: "em 1 mês" },
 		{ id: "6mo", label: "6M", text: "em 6 meses" },
 		{ id: "1y", label: "1A", text: "em 1 ano" }
 	],
+
+	DEFAULT_RANGE: 2, // 1M
 
 	start() {
 		this.quotes = {}; // id → cotação (+ history de 1 mês no explorer)
@@ -35,7 +40,7 @@ Module.register("MMM-Quotes", {
 		this.cat = 0;
 		this.sel = 0;
 		this.open = false;
-		this.range = 0;
+		this.range = this.DEFAULT_RANGE;
 		this.load();
 		setInterval(() => this.load(), this.config.refreshInterval);
 		if (this.config.mode === "explorer" && this.config.keyboard) this.bindKeys();
@@ -51,7 +56,7 @@ Module.register("MMM-Quotes", {
 	},
 
 	async request(symbols, range) {
-		const specs = symbols.map(({ id, source, pair, symbol }) => ({ id, source, pair, symbol }));
+		const specs = symbols.map(({ id, source, pair, symbol, yahoo }) => ({ id, source, pair, symbol, yahoo }));
 		const url = `MMM-Quotes/data?range=${range}&s=${encodeURIComponent(JSON.stringify(specs))}`;
 		const res = await fetch(url, { cache: "no-store" });
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -147,7 +152,7 @@ Module.register("MMM-Quotes", {
 
 	toggle(open) {
 		this.open = open;
-		this.range = 0;
+		this.range = this.DEFAULT_RANGE;
 		if (open) this.loadDetail();
 		else this.updateDom(0);
 	},
@@ -246,8 +251,14 @@ Module.register("MMM-Quotes", {
 		root.appendChild(this.svg("line", { x1: lx, x2: lx, y1: pad.t, y2: baseY, class: "quotes__cursor" }));
 		root.appendChild(this.svg("circle", { cx: lx, cy: ly, r: 6, class: `quotes__dot ${trend}` }));
 
-		// Eixo X: início, meio e fim
-		const fmt = (t) => new Date(t).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+		// Eixo X: início, meio e fim (hora no 1D; dia e hora no 5D; data nos demais)
+		const r = this.RANGES[this.range];
+		const fmt = (t) => {
+			const d = new Date(t);
+			if (r.id === "1d") return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+			if (r.id === "5d") return d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" }).replace(".", "");
+			return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+		};
 		[0, Math.floor((history.length - 1) / 2), history.length - 1].forEach((i, k) => {
 			const label = this.svg("text", { x: x(i), y: H - 10, "text-anchor": ["start", "middle", "end"][k], class: "quotes__axis" });
 			label.textContent = fmt(history[i].t);
@@ -312,7 +323,7 @@ Module.register("MMM-Quotes", {
 
 		const changes = this.el("div", "quotes__changes");
 		changes.appendChild(this.el("span", `quotes__pct ${this.trend(q.changePct)}`, `${this.formatPct(q.changePct)} hoje`));
-		if (history?.length > 1) {
+		if (history?.length > 1 && this.RANGES[this.range].id !== "1d") { // no 1D seria igual ao "hoje"
 			const periodPct = ((history.at(-1).v - history[0].v) / history[0].v) * 100;
 			changes.appendChild(this.el("span", `quotes__pct ${this.trend(periodPct)}`, `${this.formatPct(periodPct)} ${this.RANGES[this.range].text}`));
 		}

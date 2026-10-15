@@ -4,11 +4,13 @@
  *   awesome → AwesomeAPI (moedas e cripto em BRL). Token opcional: AWESOMEAPI_TOKEN no .env
  *   yahoo   → Yahoo Finance chart API (índices, ações, metais). Não oficial.
  *
- * Rota: GET /MMM-Quotes/data?s=<JSON dos ativos>&range=none|1mo|6mo|1y
+ * Rota: GET /MMM-Quotes/data?s=<JSON dos ativos>&range=none|1d|5d|1mo|6mo|1y
  *   range=none → só cotação e variação do dia
  *   range=...  → também o histórico [{ t, v }] do período (minigráficos e gráfico grande)
  *
- * Cache: cotação 5 min; histórico 1 h por período.
+ * Cache: cotação 5 min; histórico intradiário (1d/5d) 5 min; diário 1 h.
+ * Intradiário de moedas/cripto: a AwesomeAPI só tem fechamentos diários, então o
+ * gráfico de 1d/5d vem do Yahoo pelo símbolo equivalente (campo `yahoo` do ativo).
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -17,7 +19,14 @@ const NodeHelper = require("node_helper");
 const QUOTE_TTL = 5 * 60 * 1000;
 const HISTORY_TTL = 60 * 60 * 1000;
 const TIMEOUT = 10 * 1000;
-const RANGES = { "1mo": 30, "6mo": 180, "1y": 360 }; // dias (AwesomeAPI)
+// Períodos: dias de fechamento (AwesomeAPI) e intervalo das velas (Yahoo)
+const RANGES = {
+	"1d": { interval: "5m", intraday: true },
+	"5d": { interval: "30m", intraday: true },
+	"1mo": { days: 30, interval: "1d" },
+	"6mo": { days: 180, interval: "1d" },
+	"1y": { days: 360, interval: "1d" }
+};
 
 // Lê o .env do repo (mesmo arquivo do briefing.py) sem sobrescrever o ambiente.
 function loadDotenv(file) {
@@ -48,7 +57,11 @@ const providers = {
 			return { price: Number(q.bid), changePct: Number(q.pctChange), time: q.create_date };
 		},
 		async history(spec, range) {
-			const daily = await getJson(`https://economia.awesomeapi.com.br/json/daily/${spec.pair}/${RANGES[range]}${this.token()}`);
+			if (RANGES[range].intraday) {
+				if (!spec.yahoo) throw new Error(`sem símbolo Yahoo para o intradiário de ${spec.pair}`);
+				return providers.yahoo.history({ symbol: spec.yahoo }, range);
+			}
+			const daily = await getJson(`https://economia.awesomeapi.com.br/json/daily/${spec.pair}/${RANGES[range].days}${this.token()}`);
 			return daily
 				.map((d) => ({ t: Number(d.timestamp) * 1000, v: Number(d.bid) }))
 				.filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v))
@@ -57,8 +70,8 @@ const providers = {
 	},
 
 	yahoo: {
-		async chart(spec, range) {
-			const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(spec.symbol)}?range=${range}&interval=1d`;
+		async chart(spec, range, interval) {
+			const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(spec.symbol)}?range=${range}&interval=${interval}`;
 			const data = await getJson(url, { "User-Agent": "Mozilla/5.0 (MagicMirror)" });
 			const r = data.chart?.result?.[0];
 			if (!r) throw new Error(data.chart?.error?.description || "resposta vazia");
@@ -69,7 +82,7 @@ const providers = {
 			return { meta: r.meta || {}, points };
 		},
 		async quote(spec) {
-			const { meta, points } = await this.chart(spec, "5d");
+			const { meta, points } = await this.chart(spec, "5d", "1d");
 			const price = meta.regularMarketPrice ?? points.at(-1)?.v;
 			// Variação do dia: preço atual contra o fechamento do pregão anterior.
 			const prev = points.length >= 2 ? points.at(-2).v : meta.previousClose;
@@ -80,7 +93,7 @@ const providers = {
 			};
 		},
 		async history(spec, range) {
-			return (await this.chart(spec, range)).points;
+			return (await this.chart(spec, range, RANGES[range].interval)).points;
 		}
 	}
 };
@@ -127,7 +140,8 @@ module.exports = NodeHelper.create({
 		if (!quote.value) out.error = quote.error;
 
 		if (range) {
-			const hist = await this.cached(`h:${id}:${range}`, HISTORY_TTL, () => provider.history(spec, range));
+			const ttl = RANGES[range].intraday ? QUOTE_TTL : HISTORY_TTL;
+			const hist = await this.cached(`h:${id}:${range}`, ttl, () => provider.history(spec, range));
 			if (hist.value) out.history = hist.value;
 		}
 		if (out.error) console.warn(`[MMM-Quotes] ${spec.id}: ${out.error}`);
