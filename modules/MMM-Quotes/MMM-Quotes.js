@@ -5,7 +5,8 @@
  *                    ao abrir um ativo, gráfico grande com escolha de período
  *
  * Ativo: { id, label, source: "awesome", pair: "USD-BRL", yahoo: "USDBRL=X" }
- *        (yahoo: símbolo equivalente, usado só nos gráficos de 1D e 5D)
+ *        { id, label, source: "awesome", pair: "BTC-BRL", binance: "BTCBRL" }
+ *        (yahoo/binance: símbolo equivalente, usado só nos gráficos de 1D e 5D)
  *        { id, label, source: "yahoo", symbol: "^BVSP", unit: "pts" }
  *        currency: "USD" para cotar em dólar (padrão: BRL)
  *
@@ -56,7 +57,7 @@ Module.register("MMM-Quotes", {
 	},
 
 	async request(symbols, range) {
-		const specs = symbols.map(({ id, source, pair, symbol, yahoo }) => ({ id, source, pair, symbol, yahoo }));
+		const specs = symbols.map(({ id, source, pair, symbol, yahoo, binance }) => ({ id, source, pair, symbol, yahoo, binance }));
 		const url = `MMM-Quotes/data?range=${range}&s=${encodeURIComponent(JSON.stringify(specs))}`;
 		const res = await fetch(url, { cache: "no-store" });
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);

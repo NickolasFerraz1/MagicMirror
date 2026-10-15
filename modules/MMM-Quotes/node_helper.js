@@ -3,6 +3,7 @@
  * Fontes (gratuitas, sem chave obrigatória):
  *   awesome → AwesomeAPI (moedas e cripto em BRL). Token opcional: AWESOMEAPI_TOKEN no .env
  *   yahoo   → Yahoo Finance chart API (índices, ações, metais). Não oficial.
+ *   binance → API pública da Binance (velas intradiárias de cripto em BRL). Sem chave.
  *
  * Rota: GET /MMM-Quotes/data?s=<JSON dos ativos>&range=none|1d|5d|1mo|6mo|1y
  *   range=none → só cotação e variação do dia
@@ -10,7 +11,8 @@
  *
  * Cache: cotação 5 min; histórico intradiário (1d/5d) 5 min; diário 1 h.
  * Intradiário de moedas/cripto: a AwesomeAPI só tem fechamentos diários, então o
- * gráfico de 1d/5d vem do Yahoo pelo símbolo equivalente (campo `yahoo` do ativo).
+ * gráfico de 1d/5d vem do símbolo equivalente: campo `binance` (cripto, ex.: "BTCBRL")
+ * ou `yahoo` (câmbio, ex.: "USDBRL=X"). O Yahoo não tem mais BTC-BRL.
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -21,8 +23,8 @@ const HISTORY_TTL = 60 * 60 * 1000;
 const TIMEOUT = 10 * 1000;
 // Períodos: dias de fechamento (AwesomeAPI) e intervalo das velas (Yahoo)
 const RANGES = {
-	"1d": { interval: "5m", intraday: true },
-	"5d": { interval: "60m", intraday: true }, // 60m: intervalo aceito por todos os tipos de ativo (inclusive cripto)
+	"1d": { interval: "5m", intraday: true, binance: { interval: "5m", limit: 288 } },
+	"5d": { interval: "60m", intraday: true, binance: { interval: "1h", limit: 120 } },
 	"1mo": { days: 30, interval: "1d" },
 	"6mo": { days: 180, interval: "1d" },
 	"1y": { days: 360, interval: "1d" }
@@ -58,14 +60,25 @@ const providers = {
 		},
 		async history(spec, range) {
 			if (RANGES[range].intraday) {
-				if (!spec.yahoo) throw new Error(`sem símbolo Yahoo para o intradiário de ${spec.pair}`);
-				return providers.yahoo.history({ symbol: spec.yahoo }, range);
+				if (spec.binance) return providers.binance.history({ symbol: spec.binance }, range);
+				if (spec.yahoo) return providers.yahoo.history({ symbol: spec.yahoo }, range);
+				throw new Error(`sem símbolo intradiário (binance/yahoo) para ${spec.pair}`);
 			}
 			const daily = await getJson(`https://economia.awesomeapi.com.br/json/daily/${spec.pair}/${RANGES[range].days}${this.token()}`);
 			return daily
 				.map((d) => ({ t: Number(d.timestamp) * 1000, v: Number(d.bid) }))
 				.filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v))
 				.reverse(); // a API devolve do mais novo para o mais antigo
+		}
+	},
+
+	binance: {
+		async history(spec, range) {
+			const { interval, limit } = RANGES[range].binance;
+			const url = `https://api.binance.com/api/v3/klines?symbol=${spec.symbol}&interval=${interval}&limit=${limit}`;
+			const klines = await getJson(url);
+			// Cada vela: [abertura (ms), open, high, low, close, ...] → usamos o fechamento.
+			return klines.map((k) => ({ t: k[0], v: Number(k[4]) })).filter((p) => Number.isFinite(p.v));
 		}
 	},
 
@@ -143,6 +156,10 @@ module.exports = NodeHelper.create({
 			const ttl = RANGES[range].intraday ? QUOTE_TTL : HISTORY_TTL;
 			const hist = await this.cached(`h:${id}:${range}`, ttl, () => provider.history(spec, range));
 			if (hist.value) out.history = hist.value;
+			if (hist.error) {
+				out.historyError = hist.error; // aparece na resposta da rota para diagnóstico
+				console.warn(`[MMM-Quotes] ${spec.id} histórico ${range}: ${hist.error}`);
+			}
 		}
 		if (out.error) console.warn(`[MMM-Quotes] ${spec.id}: ${out.error}`);
 		return out;

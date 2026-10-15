@@ -8,14 +8,15 @@
  */
 
 // ---------- Cotações ----------
-// Moeda/cripto → { id, label, source: "awesome", pair: "XXX-BRL", yahoo: "XXXBRL=X" }
-//   (yahoo: mesmo ativo no Yahoo, usado nos gráficos de 1D e 5D; cripto: "BTC-BRL")
+// Moeda → { id, label, source: "awesome", pair: "XXX-BRL", yahoo: "XXXBRL=X" }
+// Cripto → { id, label, source: "awesome", pair: "XXX-BRL", binance: "XXXBRL" }
+//   (yahoo/binance: mesmo ativo, usado só nos gráficos de 1D e 5D)
 // Índice/ação/metal → { id, label, source: "yahoo", symbol: "^BVSP" }
 //   unit: "pts" para índices · currency: "USD" para cotar em dólar
 const Q = {
 	USD: { id: "USD", label: "Dólar", source: "awesome", pair: "USD-BRL", yahoo: "USDBRL=X" },
 	EUR: { id: "EUR", label: "Euro", source: "awesome", pair: "EUR-BRL", yahoo: "EURBRL=X" },
-	BTC: { id: "BTC", label: "Bitcoin", source: "awesome", pair: "BTC-BRL", yahoo: "BTC-BRL" },
+	BTC: { id: "BTC", label: "Bitcoin", source: "awesome", pair: "BTC-BRL", binance: "BTCBRL" },
 	GOLD: { id: "GOLD", label: "Ouro · onça", source: "yahoo", symbol: "GC=F", currency: "USD" },
 	SILVER: { id: "SILVER", label: "Prata · onça", source: "yahoo", symbol: "SI=F", currency: "USD" },
 	IBOV: { id: "IBOV", label: "Ibovespa", source: "yahoo", symbol: "^BVSP", unit: "pts" }
