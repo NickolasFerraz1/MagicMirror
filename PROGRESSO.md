@@ -3,6 +3,28 @@
 Registro do que foi feito, atualizado a cada etapa. Mais recente no topo.
 ---
 
+## 15/10/2026 (noite)
+
+### Fase 5 — App de tarefas (repo Projeto-Agenda)
+- [x] 5.1 Backend: FastAPI + SQLModel + SQLite; áreas, projetos, itens, links, ocorrências; progresso; recorrência RRULE; `/api/agenda` e `/api/hoje` (21 testes)
+- [x] 5.2 Interface PWA (Jinja2 + HTMX + Alpine): Hoje (captura rápida), Semana, Projetos, Item, Áreas; manifest, service worker, ícones
+- [x] 5.2.1 Projetos em níveis, progresso automático em cascata (ponderado pela duração), etapas sequenciais, duração estimada, botão +1, notas em Markdown, migração automática de colunas (53 testes)
+- Decidido: planejamentos escritos no Obsidian e importados no app (modelo + prompt para IA); notas longas ficam no Obsidian
+- Entregas passam a vir em zip só com os arquivos alterados
+
+---
+
+### Cotações ✅ (15/10/2026)
+- [x] `modules/MMM-Quotes`: faixa na Início + página Cotações com abas (Moedas, Cripto, Metais, Índices)
+- [x] Gráfico grande ao abrir um ativo, com períodos 1D · 5D · 1M · 6M · 1A
+- [x] Fontes: AwesomeAPI (cotação/diário), Yahoo (índices, metais, intradiário de câmbio), Binance (intradiário de cripto)
+- [x] Yahoo não tem mais BTC-BRL → intradiário do bitcoin via Binance (BTCBRL)
+- [x] Rota devolve `historyError` para diagnóstico; período sem dados mostra "Histórico indisponível"
+- [x] `modules/MMM-Nav`: troca de páginas com proteção contra rajadas (o MMM-pages exibia várias páginas juntas)
+- [x] Animação de troca de página desligada (instantânea, mais leve no Pi)
+
+---
+
 ## 15/10/2026
 
 ### Fase 4: Briefing ✅ (deploy no Pi)
