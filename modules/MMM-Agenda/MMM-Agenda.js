@@ -1,12 +1,18 @@
 /* MMM-Agenda — mostra o app Projeto Agenda (FastAPI no mesmo Pi) no espelho
  *
- * Duas instâncias no config.js:
- *   mode: "today" → página Início, coluna "Hoje": agenda do dia, atrasados e pendências
- *   mode: "week"  → página Agenda: 7 dias a partir de hoje (ou da semana navegada)
+ * Modos (uma instância por modo no config.js):
+ *   mode: "today" → página Início, coluna "Hoje": próximas atividades, atrasados e pendências
+ *   mode: "day"   → página Agenda: grade do dia (00:00–24:00) com os horários livres;
+ *                   se não couber, a janela começa na hora atual e "rola" com o tempo
+ *   mode: "week"  → lista de 7 dias (alternativa à grade)
  *
- * Navegação da semana (notificações; o sensord.py vai enviá-las):
- *   AGENDA_NEXT_WEEK / AGENDA_PREV_WEEK / AGENDA_THIS_WEEK
- * Teclado (testes no navegador): ←/→ semana, ↓ volta para esta semana. (Troca de página: MMM-Nav.)
+ * Navegação (notificações; o sensord.py vai enviá-las):
+ *   AGENDA_NEXT / AGENDA_PREV          → dia (ou semana) seguinte/anterior
+ *   AGENDA_NEXT_WEEK / AGENDA_PREV_WEEK → pula 7 dias (no modo "day")
+ *   AGENDA_TODAY                        → volta para hoje
+ *   AGENDA_GOTO_DATE, payload "AAAA-MM-DD" → abre um dia específico
+ * Teclado (testes no navegador): ←/→ dia, ↑/↓ semana, 0 hoje. (Troca de página: MMM-Nav.)
+ * Parado por resetAfter, volta sozinho para hoje.
  * Os dados vêm do node_helper (rotas /MMM-Agenda/*), que repassa para a API local.
  */
 Module.register("MMM-Agenda", {
@@ -16,22 +22,37 @@ Module.register("MMM-Agenda", {
 		maxLate: 1, // today: atrasados mostrados (a contagem aparece sempre)
 		maxPending: 2, // today: pendências mostradas
 		days: 7, // week
+		hourHeight: 64, // day: altura (px) de uma hora na grade
+		gridHeight: 0.74, // day: altura visível da grade (fração da tela; ou px se > 1)
+		freeFrom: 7, // day: só marca "livre" a partir desta hora…
+		freeTo: 23, //  …até esta (madrugada não conta como horário vago)
+		minFree: 60, // day: menor intervalo (min) marcado como livre
 		keyboard: true,
-		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora")
-		resetAfter: 2 * 60 * 1000 // week: volta para esta semana depois de um tempo parado
+		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora" e rolagem)
+		resetAfter: 2 * 60 * 1000 // day/week: volta para hoje depois de um tempo parado
 	},
 
 	start() {
 		this.data_ = null;
 		this.error = null;
-		this.offset = 0; // semanas a partir de hoje (week)
+		this.offset = 0; // dias (day) ou semanas (week) a partir de hoje
 		this.lastMove = 0;
+		this.navega = ["day", "week"].includes(this.config.mode);
 		this.load();
 		setInterval(() => {
-			if (this.config.mode === "week" && this.offset && Date.now() - this.lastMove > this.config.resetAfter) this.offset = 0;
+			if (this.navega && this.offset && Date.now() - this.lastMove > this.config.resetAfter) this.offset = 0;
 			this.load();
 		}, this.config.refreshInterval);
-		if (this.config.mode === "week" && this.config.keyboard) this.bindKeys();
+		if (this.navega && this.config.keyboard) this.bindKeys();
+	},
+
+	// Na página Agenda a grade sobe (sem a coluna "Hoje" não precisa começar em 42%)
+	resume() {
+		if (this.config.mode === "day") document.body.classList.add("agenda-dia-visivel");
+	},
+
+	suspend() {
+		if (this.config.mode === "day") document.body.classList.remove("agenda-dia-visivel");
 	},
 
 	getStyles() {
@@ -59,16 +80,17 @@ Module.register("MMM-Agenda", {
 	range() {
 		const de = new Date();
 		de.setHours(0, 0, 0, 0);
-		de.setDate(de.getDate() + this.offset * this.config.days);
+		const span = this.config.mode === "day" ? 1 : this.config.days;
+		de.setDate(de.getDate() + this.offset * span);
 		const ate = new Date(de);
-		ate.setDate(ate.getDate() + this.config.days - 1);
+		ate.setDate(ate.getDate() + span - 1);
 		return [de, ate];
 	},
 
 	// ---------- Dados ----------
 	async load() {
 		let url = "MMM-Agenda/hoje";
-		if (this.config.mode === "week") {
+		if (this.navega) {
 			const [de, ate] = this.range();
 			url = `MMM-Agenda/agenda?de=${this.iso(de)}&ate=${this.iso(ate)}`;
 		}
@@ -86,19 +108,34 @@ Module.register("MMM-Agenda", {
 		this.updateDom(0);
 	},
 
-	notificationReceived(notification) {
+	notificationReceived(notification, payload) {
 		if (notification === "DOM_OBJECTS_CREATED" && this.data_) this.updateDom(0);
-		if (this.config.mode !== "week") return;
-		if (notification === "AGENDA_NEXT_WEEK") this.move(1);
-		if (notification === "AGENDA_PREV_WEEK") this.move(-1);
-		if (notification === "AGENDA_THIS_WEEK") this.move(0, true);
+		this.notificationReceivedAlways(notification, payload);
+		if (!this.navega || this.hidden) return;
+		const semana = this.config.mode === "day" ? 7 : 1;
+		if (notification === "AGENDA_NEXT") this.move(1);
+		if (notification === "AGENDA_PREV") this.move(-1);
+		if (notification === "AGENDA_NEXT_WEEK") this.move(semana);
+		if (notification === "AGENDA_PREV_WEEK") this.move(-semana);
+		if (notification === "AGENDA_TODAY" || notification === "AGENDA_THIS_WEEK") this.move(0, true);
+	},
+
+	notificationReceivedAlways(notification, payload) {
+		// Dia específico: funciona mesmo com a página escondida (ex.: um botão futuro no app)
+		if (notification !== "AGENDA_GOTO_DATE" || this.config.mode !== "day" || !/^\d{4}-\d{2}-\d{2}$/.test(payload || "")) return;
+		const hoje = new Date();
+		hoje.setHours(0, 0, 0, 0);
+		this.move(Math.round((this.parse(payload) - hoje) / 86400000) - this.offset);
 	},
 
 	bindKeys() {
+		const semana = this.config.mode === "day" ? 7 : 1;
 		const keys = {
 			ArrowRight: () => this.move(1),
 			ArrowLeft: () => this.move(-1),
-			ArrowDown: () => this.move(0, true)
+			ArrowUp: () => this.move(-semana),
+			ArrowDown: () => this.move(semana),
+			0: () => this.move(0, true)
 		};
 		document.addEventListener("keydown", (e) => {
 			if (!keys[e.key] || this.hidden) return; // só com a página visível
@@ -130,6 +167,7 @@ Module.register("MMM-Agenda", {
 			return root;
 		}
 		if (this.error) root.appendChild(this.el("div", "agenda__erro", "sem conexão com o app · dados anteriores"));
+		if (this.config.mode === "day") return this.renderDay(root);
 		return this.config.mode === "week" ? this.renderWeek(root) : this.renderToday(root);
 	},
 
@@ -248,6 +286,171 @@ Module.register("MMM-Agenda", {
 			entradas.forEach((e) => dia.appendChild(this.entry(e, agora)));
 			root.appendChild(dia);
 		}
+		return root;
+	},
+
+	// ---------- Grade do dia ----------
+	minutos(s) {
+		return Number(s.slice(11, 13)) * 60 + Number(s.slice(14, 16));
+	},
+
+	fmtMin(m) {
+		const p = (n) => String(n).padStart(2, "0");
+		return `${p(Math.floor(m / 60) % 24)}:${p(m % 60)}`;
+	},
+
+	fmtDur(m) {
+		const h = Math.floor(m / 60), r = m % 60;
+		return h ? (r ? `${h}h${String(r).padStart(2, "0")}` : `${h}h`) : `${r} min`;
+	},
+
+	/** Blocos com horário: {e, ini, fim} em minutos do dia, com coluna para sobreposições. */
+	blocos(entradas) {
+		const lista = entradas
+			.filter((e) => e.inicio && !e.dia_inteiro && !(e.tipo_entrada === "prazo" && e.inicio.endsWith("23:59:00")))
+			.map((e) => {
+				const ini = this.minutos(e.inicio);
+				let fim;
+				if (e.tipo_entrada === "prazo") fim = ini + 15;
+				else if (e.fim && e.fim.slice(0, 10) === e.data) fim = Math.max(this.minutos(e.fim), ini + 15);
+				else if (e.fim) fim = 24 * 60; // passa da meia-noite: vai até o fim do dia
+				else fim = ini + (e.duracao_min || 30);
+				return { e, ini, fim: Math.min(fim, 24 * 60) };
+			})
+			.sort((a, b) => a.ini - b.ini || b.fim - a.fim);
+		// Agrupa o que se sobrepõe e distribui em colunas (como no Google Agenda)
+		let grupo = [], fimGrupo = -1;
+		const fecha = () => {
+			const colunas = [];
+			for (const b of grupo) {
+				let c = colunas.findIndex((fimCol) => fimCol <= b.ini);
+				if (c < 0) c = colunas.push(0) - 1;
+				colunas[c] = b.fim;
+				b.col = c;
+			}
+			grupo.forEach((b) => (b.cols = colunas.length));
+			grupo = [];
+		};
+		for (const b of lista) {
+			if (b.ini >= fimGrupo && grupo.length) fecha();
+			grupo.push(b);
+			fimGrupo = Math.max(fimGrupo, b.fim);
+		}
+		if (grupo.length) fecha();
+		return lista;
+	},
+
+	/** Intervalos livres (min) entre freeFrom e freeTo, a partir de `desde`. */
+	livres(blocos, desde) {
+		const ocupado = blocos.filter((b) => b.e.tipo_entrada !== "prazo").map((b) => [b.ini, b.fim]);
+		let cursor = Math.max(this.config.freeFrom * 60, desde);
+		const fimDia = this.config.freeTo * 60, vagos = [];
+		for (const [ini, fim] of ocupado.sort((a, b) => a[0] - b[0])) {
+			if (ini > cursor && Math.min(ini, fimDia) - cursor >= this.config.minFree) vagos.push([cursor, Math.min(ini, fimDia)]);
+			cursor = Math.max(cursor, fim);
+			if (cursor >= fimDia) break;
+		}
+		if (fimDia - cursor >= this.config.minFree) vagos.push([cursor, fimDia]);
+		return vagos;
+	},
+
+	renderDay(root) {
+		const [dia] = this.range();
+		const hoje = new Date();
+		hoje.setHours(0, 0, 0, 0);
+		const ehHoje = dia.getTime() === hoje.getTime();
+		const agora = new Date();
+		const agoraMin = agora.getHours() * 60 + agora.getMinutes();
+		const H = this.config.hourHeight, total = 24 * H;
+		const px = (m) => (m * H) / 60;
+
+		// Cabeçalho: "Hoje · domingo, 18 de out" + contagem
+		const head = this.el("div", "agenda__head");
+		const [nome] = this.dayLabel(dia, hoje);
+		const data = dia.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" }).replace(".", "");
+		head.appendChild(this.el("span", "agenda__titulo", ["Hoje", "Amanhã", "Ontem"].includes(nome) ? `${nome} · ${data}` : data));
+		const blocos = this.blocos(this.data_);
+		const diaTodo = this.data_.filter((e) => !blocos.some((b) => b.e === e));
+		const n = this.data_.length;
+		head.appendChild(this.el("span", "agenda__periodo", n ? `${n} ${n === 1 ? "item" : "itens"}` : "dia livre"));
+		root.appendChild(head);
+
+		// Dia inteiro e prazos sem hora: faixa acima da grade
+		if (diaTodo.length) {
+			const faixa = this.el("div", "agenda__diatodo");
+			for (const e of diaTodo) {
+				const chip = this.el("span", `agenda__chip prio-${e.prioridade}${e.status === "concluido" ? " is-done" : ""}`,
+					(e.tipo_entrada === "prazo" ? "⏰ " : "") + e.titulo);
+				chip.style.setProperty("--area", e.area_cor);
+				faixa.appendChild(chip);
+			}
+			root.appendChild(faixa);
+		}
+
+		// Janela visível: hoje começa 1h antes de agora; outros dias, 1h antes do 1º item (ou 07:00)
+		const alturaJanela = Math.min(total, this.config.gridHeight > 1 ? this.config.gridHeight : Math.round(window.innerHeight * this.config.gridHeight) - (diaTodo.length ? 44 : 0));
+		const inicioDesejado = ehHoje ? agoraMin - 60 : (blocos.length ? blocos[0].ini - 60 : 7 * 60);
+		const topo = Math.max(0, Math.min(total - alturaJanela, px(Math.floor(inicioDesejado / 60) * 60)));
+
+		const janela = this.el("div", "agenda__janela");
+		janela.style.height = `${alturaJanela}px`;
+		const grade = this.el("div", "agenda__grade");
+		grade.style.height = `${total}px`;
+		grade.style.transform = `translateY(${-topo}px)`;
+
+		for (let h = 0; h <= 24; h++) {
+			const linha = this.el("div", `agenda__hora${ehHoje && h * 60 < agoraMin - 59 ? " is-past" : ""}`);
+			linha.style.top = `${h * H}px`;
+			if (h < 24) linha.appendChild(this.el("span", "agenda__horalabel", `${String(h).padStart(2, "0")}:00`));
+			grade.appendChild(linha);
+		}
+
+		// Horários livres (só do que ainda vem, quando é hoje; dias passados não marcam)
+		if (dia >= hoje) {
+			for (const [ini, fim] of this.livres(blocos, ehHoje ? agoraMin : 0)) {
+				const v = this.el("div", "agenda__livre");
+				v.style.top = `${px(ini)}px`;
+				v.style.height = `${px(fim - ini)}px`;
+				v.appendChild(this.el("span", "", `livre · ${this.fmtDur(fim - ini)}`));
+				grade.appendChild(v);
+			}
+		}
+
+		for (const b of blocos) {
+			const { e } = b;
+			const st = ehHoje ? this.state(e, agora) : dia < hoje ? (e.status === "concluido" ? "done" : "past") : e.status === "concluido" ? "done" : "";
+			const bloco = this.el("div", `agenda__bloco-h prio-${e.prioridade}${st ? ` is-${st}` : ""}${e.tipo_entrada === "prazo" ? " is-prazo" : ""}`);
+			bloco.style.setProperty("--area", e.area_cor);
+			bloco.style.top = `${px(b.ini)}px`;
+			bloco.style.height = `${Math.max(px(b.fim - b.ini), 24) - 2}px`;
+			bloco.style.left = `calc(64px + (100% - 64px) * ${b.col / b.cols})`;
+			bloco.style.width = `calc((100% - 64px) / ${b.cols} - 4px)`;
+			const curto = px(b.fim - b.ini) < 44;
+			if (curto) bloco.classList.add("is-curto");
+			const hora = e.tipo_entrada === "prazo" ? `⏰ ${this.fmtMin(b.ini)}` : `${this.fmtMin(b.ini)}–${this.fmtMin(b.fim)}`;
+			bloco.appendChild(this.el("span", "agenda__bh-titulo", (st === "done" ? "✓ " : "") + e.titulo));
+			bloco.appendChild(this.el("span", "agenda__bh-meta", [hora, e.projeto_caminho || e.area_nome, e.recorrente ? "↻" : ""].filter(Boolean).join(" · ")));
+			grade.appendChild(bloco);
+		}
+
+		if (ehHoje) {
+			const linhaAgora = this.el("div", "agenda__agora");
+			linhaAgora.style.top = `${px(agoraMin)}px`;
+			linhaAgora.appendChild(this.el("span", "", this.fmtMin(agoraMin)));
+			grade.appendChild(linhaAgora);
+		}
+
+		janela.appendChild(grade);
+
+		// Avisos de itens fora da janela (acima/abaixo)
+		const minTopo = (topo * 60) / H, minBase = ((topo + alturaJanela) * 60) / H;
+		const antes = blocos.filter((b) => b.fim <= minTopo).length;
+		const depois = blocos.filter((b) => b.ini >= minBase).length;
+		if (antes) janela.appendChild(this.el("div", "agenda__fora agenda__fora--cima", `▲ ${antes} antes das ${this.fmtMin(Math.round(minTopo))}`));
+		if (depois) janela.appendChild(this.el("div", "agenda__fora agenda__fora--baixo", `▼ ${depois} depois das ${this.fmtMin(Math.round(minBase))}`));
+		root.appendChild(janela);
+
+		if (this.offset) root.appendChild(this.el("div", "agenda__dica", "volta para hoje sozinho em 2 min"));
 		return root;
 	}
 });

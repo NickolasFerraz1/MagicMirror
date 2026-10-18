@@ -102,3 +102,110 @@
 .agenda__day.is-empty .agenda__daydate { color: #444; }
 .agenda--week .agenda__title { font-size: 24px; }
 .agenda--week .agenda__time { flex-basis: 58px; font-size: 19px; }
+
+/* ---------- Página Agenda: grade do dia ---------- */
+/* Sem a coluna "Hoje" nesta página, o bloco central sobe (classe posta pelo módulo) */
+body.agenda-dia-visivel .region.upper.third { top: 14%; }
+
+.agenda--day { width: 100%; }
+.agenda--day .agenda__titulo { color: #ddd; text-transform: none; font-size: 22px; letter-spacing: 0; }
+.agenda--day .agenda__titulo::first-letter { text-transform: uppercase; }
+.agenda--day .agenda__head { margin-bottom: 14px; }
+
+.agenda__diatodo { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px 64px; }
+.agenda__chip {
+	font-size: 16px;
+	color: #eee;
+	padding: 4px 10px;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--area, #888) 22%, transparent);
+	border-left: 3px solid var(--area, #888);
+}
+.agenda__chip.is-done { opacity: .45; text-decoration: line-through; }
+
+.agenda__janela { position: relative; overflow: hidden; }
+.agenda__grade { position: relative; }
+
+.agenda__hora { position: absolute; left: 64px; right: 0; border-top: 1px solid #2a2a2a; }
+.agenda__horalabel {
+	position: absolute;
+	left: -64px;
+	top: -10px;
+	width: 52px;
+	text-align: right;
+	color: #777;
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+}
+.agenda__hora.is-past .agenda__horalabel { color: #444; }
+
+.agenda__livre {
+	position: absolute;
+	left: 64px;
+	right: 0;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding-top: 8px;
+	box-sizing: border-box;
+	background: repeating-linear-gradient(135deg, transparent 0 10px, rgb(255 255 255 / .025) 10px 20px);
+}
+.agenda__livre span { color: #4f7f5f; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+
+.agenda__bloco-h {
+	position: absolute;
+	box-sizing: border-box;
+	overflow: hidden;
+	padding: 4px 10px;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--area, #888) 24%, #000);
+	border-left: 4px solid var(--area, #888);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.agenda__bh-titulo { color: #fff; font-size: 19px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
+.agenda__bh-meta { color: #aaa; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agenda__bloco-h.is-curto { flex-direction: row; align-items: center; gap: 10px; padding-top: 0; padding-bottom: 0; }
+.agenda__bloco-h.is-curto .agenda__bh-titulo { white-space: nowrap; font-size: 17px; flex: 0 1 auto; }
+.agenda__bloco-h.prio-critica .agenda__bh-meta { color: #ff8a80; }
+.agenda__bloco-h.prio-alta .agenda__bh-meta { color: #ffc27a; }
+.agenda__bloco-h.is-prazo { background: transparent; border: 1px dashed var(--area, #888); border-left-width: 4px; border-left-style: solid; }
+.agenda__bloco-h.is-past { opacity: .4; }
+.agenda__bloco-h.is-done { opacity: .35; }
+.agenda__bloco-h.is-done .agenda__bh-titulo { text-decoration: line-through; }
+.agenda__bloco-h.is-now { box-shadow: 0 0 0 1px rgb(255 255 255 / .5); }
+
+.agenda__agora { position: absolute; left: 58px; right: 0; border-top: 2px solid #ff5a5a; z-index: 2; }
+.agenda__agora::before {
+	content: "";
+	position: absolute;
+	left: -5px;
+	top: -6px;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: #ff5a5a;
+}
+.agenda__agora span {
+	position: absolute;
+	right: 0;
+	top: -22px;
+	color: #ff8a80;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.agenda__fora {
+	position: absolute;
+	left: 64px;
+	right: 0;
+	text-align: center;
+	color: #999;
+	font-size: 14px;
+	padding: 6px 0;
+	z-index: 3;
+}
+.agenda__fora--cima { top: 0; background: linear-gradient(#000, rgb(0 0 0 / 0)); }
+.agenda__fora--baixo { bottom: 0; background: linear-gradient(rgb(0 0 0 / 0), #000); }
+.agenda__dica { color: #555; font-size: 13px; margin-top: 8px; text-align: right; }
