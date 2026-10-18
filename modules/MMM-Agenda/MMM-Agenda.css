@@ -23,10 +23,11 @@
 .agenda__title { color: #fff; font-size: 20px; line-height: 1.25; }
 .agenda__meta { color: #777; font-size: 14px; margin-top: 2px; }
 
-.agenda__entry.prio-critica .agenda__title::after,
-.agenda__item.prio-critica .agenda__title::after { content: " !"; color: #ff6b6b; }
-.agenda__entry.prio-alta .agenda__title::after,
-.agenda__item.prio-alta .agenda__title::after { content: " !"; color: #ffb347; }
+/* Prioridade: na cor do horário (agenda) e do ponto (listas); não depende do título caber */
+.agenda__entry.prio-critica .agenda__time { color: #ff6b6b; }
+.agenda__entry.prio-alta .agenda__time { color: #ffb347; }
+.agenda__item.prio-critica .agenda__dot { box-shadow: 0 0 0 2px #000, 0 0 0 3px #ff6b6b; }
+.agenda__item.prio-alta .agenda__dot { box-shadow: 0 0 0 2px #000, 0 0 0 3px #ffb347; }
 
 /* Agora / passou / feito */
 .agenda__entry.is-now { background: linear-gradient(90deg, rgb(255 255 255 / .08), transparent 80%); }
@@ -34,10 +35,22 @@
 .agenda__entry.is-past { opacity: .45; }
 .agenda__entry.is-done { opacity: .4; }
 .agenda__entry.is-done .agenda__title { text-decoration: line-through; text-decoration-color: #777; }
-.agenda__entry.is-done .agenda__title::after { content: none; }
 
 /* ---------- Início: blocos de atrasados e pendências ---------- */
 .agenda--today { max-width: 400px; }
+.agenda--today .agenda__entry { padding: 3px 0 3px 10px; margin-bottom: 5px; }
+.agenda--today .agenda__title { font-size: 19px; }
+.agenda--today .agenda__meta { font-size: 13px; margin-top: 1px; }
+.agenda--today .agenda__bloco { margin-top: 12px; }
+/* Títulos longos: no máximo 2 linhas na coluna (a semana tem espaço, mostra inteiro) */
+.agenda--today .agenda__title {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+}
+.agenda--today .agenda__item .agenda__title { -webkit-line-clamp: 1; }
 .agenda__bloco { margin-top: 16px; }
 .agenda__rotulo {
 	color: #888;
@@ -47,7 +60,7 @@
 	margin-bottom: 6px;
 }
 .agenda__bloco--alerta .agenda__rotulo { color: #ff8a80; }
-.agenda__item { display: flex; gap: 10px; align-items: baseline; margin-bottom: 4px; }
+.agenda__item { display: flex; gap: 10px; align-items: baseline; margin-bottom: 3px; }
 .agenda__item .agenda__title { font-size: 17px; color: #ddd; }
 .agenda__dot {
 	flex: 0 0 8px;

@@ -5,7 +5,7 @@
  *  │ Relógio          Clima agora  │  top_left / top_right (fixos)
  *  │ Hoje (agenda)    Próx. dias   │  top_left / top_right (página 0)
  *  ├───────────────────────────────┤
- *  │ Conteúdo principal da página  │  upper_third, ancorado a 28%
+ *  │ Conteúdo principal da página  │  upper_third, ancorado a 42%
  *  │ (Início: briefing + cotações) │  e crescendo para baixo
  *  │                               │
  *  │            • ○ ○ ○            │  bottom_bar (indicador)
@@ -23,10 +23,17 @@
 
 /* Por padrão o upper_third fica CENTRALIZADO em 33% da altura e cresce
  * para cima e para baixo, invadindo o topo. Aqui ele passa a começar
- * em 28% e crescer só para baixo. */
+ * em 42% e crescer só para baixo. 42% = abaixo da coluna "Hoje" no pior
+ * caso (4 atividades com título de 2 linhas + atrasados + pendências);
+ * sobra ~18% no fim da tela para módulos futuros. */
 .region.upper.third {
-	top: 28%;
+	top: 42%;
 	transform: none;
+}
+/* Rede de segurança: a coluna "Hoje" nunca desce além do início do bloco central */
+.region.top.left .agenda--today {
+	max-height: calc(42vh - 250px); /* 250px ≈ topo da lista (relógio + cabeçalho "Hoje") */
+	overflow: hidden;
 }
 
 /* Previsão dos próximos dias: mais compacta, alinhada ao clima atual */

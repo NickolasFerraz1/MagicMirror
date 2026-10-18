@@ -91,7 +91,7 @@ let config = {
 			position: "top_left",
 			classes: "page0",
 			header: "Hoje",
-			config: { mode: "today", maxEntries: 8, maxPending: 3 }
+			config: { mode: "today", maxEntries: 4, maxLate: 1, maxPending: 2 }
 		},
 		// Coluna direita (abaixo do clima): previsão
 		{

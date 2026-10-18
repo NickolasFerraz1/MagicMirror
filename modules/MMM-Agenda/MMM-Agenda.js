@@ -12,8 +12,9 @@
 Module.register("MMM-Agenda", {
 	defaults: {
 		mode: "today",
-		maxEntries: 8, // today: linhas da agenda antes de "+N"
-		maxPending: 3, // today: pendências mostradas
+		maxEntries: 4, // today: próximas atividades mostradas (o resto vira "+N mais tarde")
+		maxLate: 1, // today: atrasados mostrados (a contagem aparece sempre)
+		maxPending: 2, // today: pendências mostradas
 		days: 7, // week
 		keyboard: true,
 		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora")
@@ -169,18 +170,23 @@ Module.register("MMM-Agenda", {
 		let { pendencias } = this.data_;
 		const agora = new Date();
 
+		// Só o que ainda vem (ou está acontecendo): o que passou ou foi feito sai da coluna
+		const proximas = agenda.filter((e) => !["past", "done"].includes(this.state(e, agora)));
+		const feitas = agenda.filter((e) => this.state(e, agora) === "done").length;
 		if (!agenda.length) root.appendChild(this.el("div", "agenda__vazio", "Nada marcado para hoje."));
+		else if (!proximas.length) root.appendChild(this.el("div", "agenda__vazio", "Nada mais para hoje."));
 		const lista = this.el("div", "agenda__list");
-		agenda.slice(0, this.config.maxEntries).forEach((e) => lista.appendChild(this.entry(e, agora)));
+		proximas.slice(0, this.config.maxEntries).forEach((e) => lista.appendChild(this.entry(e, agora)));
 		root.appendChild(lista);
-		if (agenda.length > this.config.maxEntries) {
-			root.appendChild(this.el("div", "agenda__mais", `+${agenda.length - this.config.maxEntries} mais`));
-		}
+		const resto = [];
+		if (proximas.length > this.config.maxEntries) resto.push(`+${proximas.length - this.config.maxEntries} mais tarde`);
+		if (feitas) resto.push(`${feitas} ${feitas === 1 ? "feita" : "feitas"}`);
+		if (resto.length) root.appendChild(this.el("div", "agenda__mais", resto.join(" · ")));
 
 		if (atrasados.length) {
 			const bloco = this.el("div", "agenda__bloco agenda__bloco--alerta");
 			bloco.appendChild(this.el("div", "agenda__rotulo", `Atrasados · ${atrasados.length}`));
-			atrasados.slice(0, 2).forEach((i) => bloco.appendChild(this.item(i)));
+			atrasados.slice(0, this.config.maxLate).forEach((i) => bloco.appendChild(this.item(i)));
 			root.appendChild(bloco);
 		}
 
