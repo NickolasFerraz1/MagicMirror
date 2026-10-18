@@ -1,0 +1,91 @@
+/* MMM-Agenda — mesma linguagem do MMM-Briefing: texto claro, acento pela cor da área */
+.agenda { text-align: left; color: #ccc; }
+.agenda__erro { color: #a66; font-size: 13px; margin-bottom: 8px; }
+.agenda__vazio { color: #777; font-size: 18px; }
+.agenda__mais { color: #777; font-size: 15px; margin: 2px 0 0 62px; }
+
+/* ---------- Linha da agenda ---------- */
+.agenda__entry {
+	display: flex;
+	gap: 12px;
+	align-items: baseline;
+	padding: 5px 0 5px 10px;
+	border-left: 2px solid var(--area, #888);
+	margin-bottom: 6px;
+}
+.agenda__time {
+	flex: 0 0 50px;
+	color: #999;
+	font-size: 17px;
+	font-variant-numeric: tabular-nums;
+}
+.agenda__body { display: flex; flex-direction: column; min-width: 0; }
+.agenda__title { color: #fff; font-size: 20px; line-height: 1.25; }
+.agenda__meta { color: #777; font-size: 14px; margin-top: 2px; }
+
+.agenda__entry.prio-critica .agenda__title::after,
+.agenda__item.prio-critica .agenda__title::after { content: " !"; color: #ff6b6b; }
+.agenda__entry.prio-alta .agenda__title::after,
+.agenda__item.prio-alta .agenda__title::after { content: " !"; color: #ffb347; }
+
+/* Agora / passou / feito */
+.agenda__entry.is-now { background: linear-gradient(90deg, rgb(255 255 255 / .08), transparent 80%); }
+.agenda__entry.is-now .agenda__time { color: #fff; }
+.agenda__entry.is-past { opacity: .45; }
+.agenda__entry.is-done { opacity: .4; }
+.agenda__entry.is-done .agenda__title { text-decoration: line-through; text-decoration-color: #777; }
+.agenda__entry.is-done .agenda__title::after { content: none; }
+
+/* ---------- Início: blocos de atrasados e pendências ---------- */
+.agenda--today { max-width: 400px; }
+.agenda__bloco { margin-top: 16px; }
+.agenda__rotulo {
+	color: #888;
+	font-size: 13px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	margin-bottom: 6px;
+}
+.agenda__bloco--alerta .agenda__rotulo { color: #ff8a80; }
+.agenda__item { display: flex; gap: 10px; align-items: baseline; margin-bottom: 4px; }
+.agenda__item .agenda__title { font-size: 17px; color: #ddd; }
+.agenda__dot {
+	flex: 0 0 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--area, #888);
+	transform: translateY(-2px);
+}
+
+/* ---------- Página Agenda: semana ---------- */
+.agenda__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	border-bottom: 1px solid #666;
+	padding-bottom: 5px;
+	margin-bottom: 20px;
+	font-size: 15px;
+	text-transform: uppercase;
+}
+.agenda__titulo { color: #999; }
+.agenda__periodo { color: #777; }
+.agenda__day { margin-bottom: 22px; }
+.agenda__dayhead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.agenda__dayname { color: #ddd; font-size: 22px; }
+.agenda__daydate { color: #777; font-size: 16px; }
+.agenda__count {
+	margin-left: auto;
+	color: #888;
+	font-size: 14px;
+	border: 1px solid #555;
+	border-radius: 10px;
+	padding: 0 8px;
+}
+.agenda__day.is-today .agenda__dayname { color: #fff; font-weight: 600; }
+.agenda__day.is-today .agenda__dayhead { border-bottom: 1px solid #444; padding-bottom: 4px; }
+.agenda__day.is-empty { margin-bottom: 12px; }
+.agenda__day.is-empty .agenda__dayname { color: #555; font-size: 18px; }
+.agenda__day.is-empty .agenda__daydate { color: #444; }
+.agenda--week .agenda__title { font-size: 24px; }
+.agenda--week .agenda__time { flex-basis: 58px; font-size: 19px; }

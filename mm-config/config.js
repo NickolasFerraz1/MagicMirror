@@ -4,7 +4,7 @@
  *
  * Páginas (índice MMM-pages):
  *   0 Início | 1 Briefing | 2 Agenda | 3 Cotações
- * Placeholders (helloworld) restantes: Agenda (coluna "Hoje" e página 2).
+ * Agenda (coluna "Hoje" e página 2): MMM-Agenda, lê o app Projeto Agenda (localhost:8090).
  */
 
 // ---------- Cotações ----------
@@ -37,7 +37,8 @@ let config = {
 	address: "0.0.0.0",
 	port: 8080,
 	basePath: "/",
-	ipWhitelist: ["127.0.0.1", "::ffff:127.0.0.1", "::1", "192.168.1.1/24"],
+	// 100.64.0.0/10 = Tailscale: abre o espelho no navegador de fora de casa (http://magicmirror:8080)
+	ipWhitelist: ["127.0.0.1", "::ffff:127.0.0.1", "::1", "192.168.1.1/24", "100.64.0.0/10"],
 
 	language: "pt-br",
 	locale: "pt-BR",
@@ -84,13 +85,13 @@ let config = {
 		},
 
 		// ---------- Página 0: Início ----------
-		// Coluna esquerda (abaixo do relógio): agenda do dia — placeholder até a Fase 5
+		// Coluna esquerda (abaixo do relógio): agenda do dia, atrasados e pendências
 		{
-			module: "helloworld",
+			module: "MMM-Agenda",
 			position: "top_left",
 			classes: "page0",
 			header: "Hoje",
-			config: { text: "Próximas tarefas (em breve)" }
+			config: { mode: "today", maxEntries: 8, maxPending: 3 }
 		},
 		// Coluna direita (abaixo do clima): previsão
 		{
@@ -133,11 +134,12 @@ let config = {
 		},
 
 		// ---------- Página 2: Agenda ----------
+		// Próximos 7 dias; ←/→ troca de semana (gestos depois: AGENDA_NEXT_WEEK/PREV_WEEK)
 		{
-			module: "helloworld",
-			position: "middle_center",
+			module: "MMM-Agenda",
+			position: "upper_third",
 			classes: "page2",
-			config: { text: "Agenda — dia / semana / mês" }
+			config: { mode: "week", days: 7 }
 		},
 
 		// ---------- Página 3: Cotações ----------
