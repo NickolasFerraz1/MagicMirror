@@ -9,10 +9,11 @@
  * Navegação (notificações; o sensord.py vai enviá-las):
  *   AGENDA_NEXT / AGENDA_PREV          → dia (ou semana) seguinte/anterior
  *   AGENDA_NEXT_WEEK / AGENDA_PREV_WEEK → pula 7 dias (no modo "day")
+ *   AGENDA_SCROLL_UP / AGENDA_SCROLL_DOWN → rola a grade do dia (scrollStep horas)
  *   AGENDA_TODAY                        → volta para hoje
  *   AGENDA_GOTO_DATE, payload "AAAA-MM-DD" → abre um dia específico
- * Teclado (testes no navegador): ←/→ dia, ↑/↓ semana, 0 hoje. (Troca de página: MMM-Nav.)
- * Parado por resetAfter, volta sozinho para hoje.
+ * Teclado: ←/→ dia, ↑/↓ rola a grade (no "week": semana), 0 hoje. (Troca de página: MMM-Nav.)
+ * Parado por resetAfter, volta sozinho para hoje e para a rolagem automática.
  * Os dados vêm do node_helper (rotas /MMM-Agenda/*), que repassa para a API local.
  */
 Module.register("MMM-Agenda", {
@@ -27,6 +28,7 @@ Module.register("MMM-Agenda", {
 		freeFrom: 7, // day: só marca "livre" a partir desta hora…
 		freeTo: 23, //  …até esta (madrugada não conta como horário vago)
 		minFree: 60, // day: menor intervalo (min) marcado como livre
+		scrollStep: 3, // day: horas por toque em ↑/↓
 		keyboard: true,
 		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora" e rolagem)
 		resetAfter: 2 * 60 * 1000 // day/week: volta para hoje depois de um tempo parado
@@ -37,10 +39,11 @@ Module.register("MMM-Agenda", {
 		this.error = null;
 		this.offset = 0; // dias (day) ou semanas (week) a partir de hoje
 		this.lastMove = 0;
+		this.rolagem = 0; // day: horas roladas à mão (relativas à janela automática)
 		this.navega = ["day", "week"].includes(this.config.mode);
 		this.load();
 		setInterval(() => {
-			if (this.navega && this.offset && Date.now() - this.lastMove > this.config.resetAfter) this.offset = 0;
+			if (this.navega && (this.offset || this.rolagem) && Date.now() - this.lastMove > this.config.resetAfter) this.offset = this.rolagem = 0;
 			this.load();
 		}, this.config.refreshInterval);
 		if (this.navega && this.config.keyboard) this.bindKeys();
@@ -117,6 +120,8 @@ Module.register("MMM-Agenda", {
 		if (notification === "AGENDA_PREV") this.move(-1);
 		if (notification === "AGENDA_NEXT_WEEK") this.move(semana);
 		if (notification === "AGENDA_PREV_WEEK") this.move(-semana);
+		if (notification === "AGENDA_SCROLL_UP") this.rolar(-1);
+		if (notification === "AGENDA_SCROLL_DOWN") this.rolar(1);
 		if (notification === "AGENDA_TODAY" || notification === "AGENDA_THIS_WEEK") this.move(0, true);
 	},
 
@@ -129,12 +134,12 @@ Module.register("MMM-Agenda", {
 	},
 
 	bindKeys() {
-		const semana = this.config.mode === "day" ? 7 : 1;
+		const dia = this.config.mode === "day";
 		const keys = {
 			ArrowRight: () => this.move(1),
 			ArrowLeft: () => this.move(-1),
-			ArrowUp: () => this.move(-semana),
-			ArrowDown: () => this.move(semana),
+			ArrowUp: () => (dia ? this.rolar(-1) : this.move(-1)),
+			ArrowDown: () => (dia ? this.rolar(1) : this.move(1)),
 			0: () => this.move(0, true)
 		};
 		document.addEventListener("keydown", (e) => {
@@ -144,10 +149,18 @@ Module.register("MMM-Agenda", {
 		});
 	},
 
+	rolar(dir) {
+		if (this.config.mode !== "day") return;
+		this.rolagem += dir * this.config.scrollStep;
+		this.lastMove = Date.now();
+		this.updateDom(0);
+	},
+
 	move(dir, reset = false) {
 		const novo = reset ? 0 : this.offset + dir;
-		if (novo === this.offset) return;
+		if (novo === this.offset && !(reset && this.rolagem)) return;
 		this.offset = novo;
+		this.rolagem = 0;
 		this.lastMove = Date.now();
 		this.load();
 	},
@@ -390,7 +403,11 @@ Module.register("MMM-Agenda", {
 		// Janela visível: hoje começa 1h antes de agora; outros dias, 1h antes do 1º item (ou 07:00)
 		const alturaJanela = Math.min(total, this.config.gridHeight > 1 ? this.config.gridHeight : Math.round(window.innerHeight * this.config.gridHeight) - (diaTodo.length ? 44 : 0));
 		const inicioDesejado = ehHoje ? agoraMin - 60 : (blocos.length ? blocos[0].ini - 60 : 7 * 60);
-		const topo = Math.max(0, Math.min(total - alturaJanela, px(Math.floor(inicioDesejado / 60) * 60)));
+		const limita = (y) => Math.max(0, Math.min(total - alturaJanela, y));
+		const base = limita(px(Math.floor(inicioDesejado / 60) * 60));
+		const topo = limita(base + px(this.rolagem * 60)); // automática + rolagem à mão
+		this.rolagem = (topo - base) / H; // não acumula além do limite (o próximo toque já volta)
+		this.topoAtual = topo;
 
 		const janela = this.el("div", "agenda__janela");
 		janela.style.height = `${alturaJanela}px`;
@@ -450,7 +467,7 @@ Module.register("MMM-Agenda", {
 		if (depois) janela.appendChild(this.el("div", "agenda__fora agenda__fora--baixo", `▼ ${depois} depois das ${this.fmtMin(Math.round(minBase))}`));
 		root.appendChild(janela);
 
-		if (this.offset) root.appendChild(this.el("div", "agenda__dica", "volta para hoje sozinho em 2 min"));
+		if (this.offset || this.rolagem) root.appendChild(this.el("div", "agenda__dica", this.offset ? "volta para hoje sozinho em 2 min" : "volta para a hora atual sozinho em 2 min"));
 		return root;
 	}
 });

@@ -134,8 +134,8 @@ let config = {
 		},
 
 		// ---------- Página 2: Agenda ----------
-		// Grade do dia (00–24h) com horários livres; ←/→ dia, ↑/↓ semana, 0 hoje
-		// (gestos depois: AGENDA_NEXT/PREV, AGENDA_TODAY; dia específico: AGENDA_GOTO_DATE)
+		// Grade do dia (00–24h) com horários livres; ←/→ dia, ↑/↓ rola as horas, 0 hoje
+		// (gestos depois: AGENDA_NEXT/PREV, AGENDA_SCROLL_UP/DOWN, AGENDA_TODAY; dia: AGENDA_GOTO_DATE)
 		{
 			module: "MMM-Agenda",
 			position: "upper_third",
