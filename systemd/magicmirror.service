@@ -1,13 +1,17 @@
+# Servidor do MagicMirror² (só o servidor; a tela é o Chromium do pi/kiosk.sh).
+# Reconstruído a partir do serviço em uso; confira com:
+#   diff <(systemctl cat magicmirror | tail -n +2) ~/magic-mirror/systemd/magicmirror.service
 [Unit]
-Description=MagicMirror server
-After=network-online.target
+Description=MagicMirror² (servidor)
 Wants=network-online.target
+After=network-online.target
 
 [Service]
+Type=simple
 User=nickferraz
 WorkingDirectory=/home/nickferraz/MagicMirror
 ExecStart=/usr/bin/npm run server
-Restart=always
+Restart=on-failure
 RestartSec=5
 
 [Install]
