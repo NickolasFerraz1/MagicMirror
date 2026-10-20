@@ -32,7 +32,10 @@
 /* Agora / passou / feito */
 .agenda__entry.is-now { background: linear-gradient(90deg, rgb(255 255 255 / .08), transparent 80%); }
 .agenda__entry.is-now .agenda__time { color: #fff; }
-.agenda__entry.is-past { opacity: .45; }
+/* Passou e não fez: vermelho (diferente de feito, que fica riscado e apagado) */
+.agenda__entry.is-past { border-left-color: #ff6b6b; }
+.agenda__entry.is-past .agenda__time { color: #ff6b6b; }
+.agenda__entry.is-past .agenda__title { color: #ffb3b3; }
 .agenda__entry.is-done { opacity: .4; }
 .agenda__entry.is-done .agenda__title { text-decoration: line-through; text-decoration-color: #777; }
 .agenda__entry.is-skip { opacity: .4; }
@@ -173,7 +176,8 @@ body.agenda-dia-visivel .region.upper.third { top: 14%; }
 .agenda__bloco-h.prio-critica .agenda__bh-meta { color: #ff8a80; }
 .agenda__bloco-h.prio-alta .agenda__bh-meta { color: #ffc27a; }
 .agenda__bloco-h.is-prazo { background: transparent; border: 1px dashed var(--area, #888); border-left-width: 4px; border-left-style: solid; }
-.agenda__bloco-h.is-past { opacity: .4; }
+.agenda__bloco-h.is-past { border-left-color: #ff6b6b; background: color-mix(in srgb, #ff6b6b 14%, #000); opacity: .8; }
+.agenda__bloco-h.is-past .agenda__bh-meta { color: #ff8a80; }
 .agenda__bloco-h.is-done { opacity: .35; }
 .agenda__bloco-h.is-done .agenda__bh-titulo { text-decoration: line-through; }
 .agenda__bloco-h.is-skip { opacity: .35; background: transparent; border: 1px dashed var(--area, #888); border-left-width: 4px; }

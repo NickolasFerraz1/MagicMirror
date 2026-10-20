@@ -184,7 +184,7 @@ Module.register("MMM-Agenda", {
 		return this.config.mode === "week" ? this.renderWeek(root) : this.renderToday(root);
 	},
 
-	/** Estado da entrada em relação a agora: done | now | past | "" */
+	/** Estado da entrada em relação a agora: done | skip | now | past (passou e não fez) | "" */
 	state(e, agora) {
 		if (e.status === "concluido") return "done";
 		if (e.status === "pulado") return "skip"; // recorrente pulada no dia (marcada no app)
@@ -222,17 +222,24 @@ Module.register("MMM-Agenda", {
 		let { pendencias } = this.data_;
 		const agora = new Date();
 
-		// Só o que ainda vem (ou está acontecendo): o que passou ou foi feito sai da coluna
+		// Próximas têm prioridade; vagas que sobram mostram as que passaram sem ser feitas (em vermelho),
+		// das mais recentes para trás. Feitas/puladas saem da coluna (contadas no rodapé).
+		const max = this.config.maxEntries;
 		const proximas = agenda.filter((e) => !["past", "done", "skip"].includes(this.state(e, agora)));
+		const perdidas = agenda.filter((e) => this.state(e, agora) === "past");
+		const vagas = Math.max(0, max - proximas.length);
+		const perdidasVisiveis = vagas ? perdidas.slice(-vagas) : [];
 		const feitas = agenda.filter((e) => this.state(e, agora) === "done").length;
 		const puladas = agenda.filter((e) => this.state(e, agora) === "skip").length;
 		if (!agenda.length) root.appendChild(this.el("div", "agenda__vazio", "Nada marcado para hoje."));
-		else if (!proximas.length) root.appendChild(this.el("div", "agenda__vazio", "Nada mais para hoje."));
+		else if (!proximas.length && !perdidasVisiveis.length) root.appendChild(this.el("div", "agenda__vazio", "Nada mais para hoje."));
 		const lista = this.el("div", "agenda__list");
-		proximas.slice(0, this.config.maxEntries).forEach((e) => lista.appendChild(this.entry(e, agora)));
+		[...perdidasVisiveis, ...proximas.slice(0, max)].forEach((e) => lista.appendChild(this.entry(e, agora)));
 		root.appendChild(lista);
 		const resto = [];
-		if (proximas.length > this.config.maxEntries) resto.push(`+${proximas.length - this.config.maxEntries} mais tarde`);
+		if (proximas.length > max) resto.push(`+${proximas.length - max} mais tarde`);
+		const perdidasOcultas = perdidas.length - perdidasVisiveis.length;
+		if (perdidasOcultas) resto.push(`${perdidasOcultas} não ${perdidasOcultas === 1 ? "feita" : "feitas"}`);
 		if (feitas) resto.push(`${feitas} ${feitas === 1 ? "feita" : "feitas"}`);
 		if (puladas) resto.push(`${puladas} ${puladas === 1 ? "pulada" : "puladas"}`);
 		if (resto.length) root.appendChild(this.el("div", "agenda__mais", resto.join(" · ")));
