@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Restaura no Pi a configuração que fica fora do MagicMirror (cartão novo / reinstalação).
 # Pré-requisitos: Raspberry Pi OS com labwc, MagicMirror² em ~/MagicMirror, este repo em ~/magic-mirror,
-#                 pacotes wlr-randr e wlrctl (sudo apt install wlr-randr wlrctl).
+#                 pacotes wlr-randr, wlrctl e kanshi (sudo apt install wlr-randr wlrctl kanshi).
 # Uso: bash ~/magic-mirror/pi/restaurar.sh
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,6 +11,9 @@ mkdir -p ~/bin ~/.config/labwc
 install -m 755 "$REPO/pi/kiosk.sh" ~/bin/kiosk.sh
 [ -f ~/.config/labwc/autostart ] && cp ~/.config/labwc/autostart ~/.config/labwc/autostart.bak
 cp "$REPO/pi/labwc-autostart" ~/.config/labwc/autostart
+mkdir -p ~/.config/kanshi
+[ -f ~/.config/kanshi/config ] && cp ~/.config/kanshi/config ~/.config/kanshi/config.bak
+cp "$REPO/pi/kanshi-config" ~/.config/kanshi/config
 
 echo "==> config e módulos do MagicMirror (links para o repo)"
 ln -sfn "$REPO/mm-config/config.js" ~/MagicMirror/config/config.js

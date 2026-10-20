@@ -12,7 +12,9 @@ pkill -x wf-panel-pi
 until curl -s http://localhost:8080 > /dev/null; do sleep 2; done
 sleep 15  # dá tempo à sessão gráfica/GPU estabilizar após o boot
 
-# Tela em pé: 1600x900 girada 270° → 900x1600
+# Tela em pé: 1600x900 girada 270° → 900x1600. O kanshi (pi/kanshi-config) reaplica a
+# rotação quando o monitor é desligado/religado; o wlr-randr garante o primeiro boot.
+pgrep -x kanshi > /dev/null || kanshi &
 wlr-randr --output HDMI-A-1 --mode 1600x900@60 --transform 270
 
 # Mexe o ponteiro após o Chromium carregar, para o CSS esconder o cursor
