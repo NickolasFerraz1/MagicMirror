@@ -2,6 +2,6 @@
 # Instalado em ~/.config/kanshi/config por pi/restaurar.sh.
 profile espelho {
 	output HDMI-A-1 mode 1600x900@60Hz transform 270
-	# Ao (re)conectar o monitor, o cursor reaparece: um movimento faz o CSS (cursor: none) escondê-lo
-	exec sh -c "sleep 3; wlrctl pointer move 5 5"
+	# Ao (re)conectar o monitor, o cursor reaparece: manda para o canto (fica fora da tela)
+	exec sh -c "sleep 3; wlrctl pointer move 10000 10000"
 }

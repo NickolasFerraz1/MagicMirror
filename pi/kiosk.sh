@@ -17,8 +17,9 @@ sleep 15  # dá tempo à sessão gráfica/GPU estabilizar após o boot
 pgrep -x kanshi > /dev/null || kanshi &
 wlr-randr --output HDMI-A-1 --mode 1600x900@60 --transform 270
 
-# Mexe o ponteiro após o Chromium carregar, para o CSS esconder o cursor
-(sleep 20; wlrctl pointer move 5 5) &
+# Manda o ponteiro para o canto inferior direito: só a ponta fica no último pixel e o
+# resto do cursor sai da tela (não depende do CSS cursor: none, que falhava às vezes)
+(sleep 20; wlrctl pointer move 10000 10000) &
 
 # --remote-debugging-port: permite recarregar a tela por script (scripts/recarregar-tela.mjs).
 # Escuta só em 127.0.0.1 (não fica exposto na rede).

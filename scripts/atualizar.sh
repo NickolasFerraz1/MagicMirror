@@ -29,10 +29,10 @@ done
 
 echo "==> recarregando a tela"
 if node "$REPO/scripts/recarregar-tela.mjs"; then
-	# Página recarregada mostra o cursor até ele se mexer (o CSS só esconde depois de um movimento)
+	# Garante o cursor no canto (fora da tela) depois da recarga
 	sleep 5
 	WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
-		wlrctl pointer move 5 5 2>/dev/null || echo "   (não consegui mexer o cursor; ele some no próximo movimento)"
+		wlrctl pointer move 10000 10000 2>/dev/null || echo "   (não consegui mexer o cursor; ele some no próximo movimento)"
 else
 	echo "   (tela não recarregada: se o monitor estiver ligado, rode sudo reboot)"
 fi
