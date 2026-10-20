@@ -35,6 +35,8 @@
 .agenda__entry.is-past { opacity: .45; }
 .agenda__entry.is-done { opacity: .4; }
 .agenda__entry.is-done .agenda__title { text-decoration: line-through; text-decoration-color: #777; }
+.agenda__entry.is-skip { opacity: .4; }
+.agenda__entry.is-skip .agenda__title { font-style: italic; }
 
 /* ---------- Início: blocos de atrasados e pendências ---------- */
 .agenda--today { max-width: 400px; }
@@ -174,6 +176,8 @@ body.agenda-dia-visivel .region.upper.third { top: 14%; }
 .agenda__bloco-h.is-past { opacity: .4; }
 .agenda__bloco-h.is-done { opacity: .35; }
 .agenda__bloco-h.is-done .agenda__bh-titulo { text-decoration: line-through; }
+.agenda__bloco-h.is-skip { opacity: .35; background: transparent; border: 1px dashed var(--area, #888); border-left-width: 4px; }
+.agenda__bloco-h.is-skip .agenda__bh-titulo { font-style: italic; }
 .agenda__bloco-h.is-now { box-shadow: 0 0 0 1px rgb(255 255 255 / .5); }
 
 .agenda__agora { position: absolute; left: 58px; right: 0; border-top: 2px solid #ff5a5a; z-index: 2; }

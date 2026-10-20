@@ -186,7 +186,8 @@ Module.register("MMM-Agenda", {
 
 	/** Estado da entrada em relação a agora: done | now | past | "" */
 	state(e, agora) {
-		if (e.status === "concluido" || e.status === "pulado") return "done";
+		if (e.status === "concluido") return "done";
+		if (e.status === "pulado") return "skip"; // recorrente pulada no dia (marcada no app)
 		if (e.dia_inteiro || !e.inicio || e.tipo_entrada === "prazo") return "";
 		const ini = this.parse(e.inicio);
 		const fim = e.fim ? this.parse(e.fim) : new Date(ini.getTime() + (e.duracao_min || 30) * 60000);
@@ -206,7 +207,7 @@ Module.register("MMM-Agenda", {
 		row.appendChild(quando);
 
 		const corpo = this.el("span", "agenda__body");
-		const titulo = this.el("span", "agenda__title", (st === "done" ? "✓ " : "") + e.titulo);
+		const titulo = this.el("span", "agenda__title", (st === "done" ? "✓ " : st === "skip" ? "⏭ " : "") + e.titulo);
 		corpo.appendChild(titulo);
 		const meta = [e.projeto_caminho || e.area_nome];
 		if (e.tipo_entrada === "prazo") meta.unshift("prazo");
@@ -222,8 +223,9 @@ Module.register("MMM-Agenda", {
 		const agora = new Date();
 
 		// Só o que ainda vem (ou está acontecendo): o que passou ou foi feito sai da coluna
-		const proximas = agenda.filter((e) => !["past", "done"].includes(this.state(e, agora)));
+		const proximas = agenda.filter((e) => !["past", "done", "skip"].includes(this.state(e, agora)));
 		const feitas = agenda.filter((e) => this.state(e, agora) === "done").length;
+		const puladas = agenda.filter((e) => this.state(e, agora) === "skip").length;
 		if (!agenda.length) root.appendChild(this.el("div", "agenda__vazio", "Nada marcado para hoje."));
 		else if (!proximas.length) root.appendChild(this.el("div", "agenda__vazio", "Nada mais para hoje."));
 		const lista = this.el("div", "agenda__list");
@@ -232,6 +234,7 @@ Module.register("MMM-Agenda", {
 		const resto = [];
 		if (proximas.length > this.config.maxEntries) resto.push(`+${proximas.length - this.config.maxEntries} mais tarde`);
 		if (feitas) resto.push(`${feitas} ${feitas === 1 ? "feita" : "feitas"}`);
+		if (puladas) resto.push(`${puladas} ${puladas === 1 ? "pulada" : "puladas"}`);
 		if (resto.length) root.appendChild(this.el("div", "agenda__mais", resto.join(" · ")));
 
 		if (atrasados.length) {
@@ -355,7 +358,8 @@ Module.register("MMM-Agenda", {
 
 	/** Intervalos livres (min) entre freeFrom e freeTo, a partir de `desde`. */
 	livres(blocos, desde) {
-		const ocupado = blocos.filter((b) => b.e.tipo_entrada !== "prazo").map((b) => [b.ini, b.fim]);
+		// Prazo não ocupa a agenda; recorrente pulada no dia libera o horário
+		const ocupado = blocos.filter((b) => b.e.tipo_entrada !== "prazo" && b.e.status !== "pulado").map((b) => [b.ini, b.fim]);
 		let cursor = Math.max(this.config.freeFrom * 60, desde);
 		const fimDia = this.config.freeTo * 60, vagos = [];
 		for (const [ini, fim] of ocupado.sort((a, b) => a[0] - b[0])) {
@@ -435,7 +439,8 @@ Module.register("MMM-Agenda", {
 
 		for (const b of blocos) {
 			const { e } = b;
-			const st = ehHoje ? this.state(e, agora) : dia < hoje ? (e.status === "concluido" ? "done" : "past") : e.status === "concluido" ? "done" : "";
+			const fixo = { concluido: "done", pulado: "skip" }[e.status]; // feito/pulado vale para qualquer dia
+			const st = ehHoje ? this.state(e, agora) : fixo || (dia < hoje ? "past" : "");
 			const bloco = this.el("div", `agenda__bloco-h prio-${e.prioridade}${st ? ` is-${st}` : ""}${e.tipo_entrada === "prazo" ? " is-prazo" : ""}`);
 			bloco.style.setProperty("--area", e.area_cor);
 			bloco.style.top = `${px(b.ini)}px`;
@@ -445,8 +450,8 @@ Module.register("MMM-Agenda", {
 			const curto = px(b.fim - b.ini) < 44;
 			if (curto) bloco.classList.add("is-curto");
 			const hora = e.tipo_entrada === "prazo" ? `⏰ ${this.fmtMin(b.ini)}` : `${this.fmtMin(b.ini)}–${this.fmtMin(b.fim)}`;
-			bloco.appendChild(this.el("span", "agenda__bh-titulo", (st === "done" ? "✓ " : "") + e.titulo));
-			bloco.appendChild(this.el("span", "agenda__bh-meta", [hora, e.projeto_caminho || e.area_nome, e.recorrente ? "↻" : ""].filter(Boolean).join(" · ")));
+			bloco.appendChild(this.el("span", "agenda__bh-titulo", (st === "done" ? "✓ " : st === "skip" ? "⏭ " : "") + e.titulo));
+			bloco.appendChild(this.el("span", "agenda__bh-meta", [hora, st === "skip" ? "pulado" : "", e.projeto_caminho || e.area_nome, e.recorrente ? "↻" : ""].filter(Boolean).join(" · ")));
 			grade.appendChild(bloco);
 		}
 
