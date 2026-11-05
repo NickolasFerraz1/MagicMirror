@@ -35,7 +35,7 @@ Module.register("MMM-Agenda", {
 		maxPlans: 3, // day: planos no topo (etapa atual); 0 = não mostra
 		monthTitles: 2, // day (mês): títulos por dia; o resto vira "+N"
 		keyboard: true,
-		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora" e rolagem)
+		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora" e rolagem); alinhado à virada do minuto
 		resetAfter: 2 * 60 * 1000 // day/week: volta para hoje depois de um tempo parado
 	},
 
@@ -50,14 +50,22 @@ Module.register("MMM-Agenda", {
 		this.planos = [];
 		this.navega = ["day", "week"].includes(this.config.mode);
 		this.load();
-		setInterval(() => {
+		// Atualiza na virada de cada minuto (e não 60 s depois de o módulo ter subido): a linha do
+		// "agora" e o "passou do horário" andam junto com o relógio do topo.
+		const passo = () => {
 			const mexido = this.offset || this.rolagem || this.mes || this.vista !== "dia";
 			if (this.navega && mexido && Date.now() - this.lastMove > this.config.resetAfter) {
 				this.offset = this.rolagem = this.mes = 0;
 				this.vista = "dia";
 			}
 			this.load();
-		}, this.config.refreshInterval);
+			agendar();
+		};
+		const agendar = () => {
+			const ms = this.config.refreshInterval;
+			setTimeout(passo, ms - (Date.now() % ms) + 200); // +200 ms: já dentro do minuto novo
+		};
+		agendar();
 		if (this.navega && this.config.keyboard) this.bindKeys();
 	},
 
