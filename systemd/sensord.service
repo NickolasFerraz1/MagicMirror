@@ -13,6 +13,10 @@ Environment=XDG_RUNTIME_DIR=/run/user/1000
 #   Environment=SENSORD_APAGAR_APOS=600
 Environment=SENSORD_PIR_GPIO=17
 Environment=SENSORD_APAGAR_APOS=300
+# PAJ7620 (gestos): rotação/espelhamento ajustados na montagem (ver pi/README.md)
+Environment=SENSORD_GESTOS=1
+Environment=SENSORD_PAJ_ROTACAO=0
+Environment=SENSORD_PAJ_ESPELHAR=0
 ExecStart=/usr/bin/python3 /home/nickferraz/magic-mirror/sensord/sensord.py
 Restart=always
 RestartSec=5

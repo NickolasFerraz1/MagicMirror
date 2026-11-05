@@ -2,13 +2,16 @@
 """sensord — sensores do espelho.
 
 - PIR (7.1): acende a tela quando alguém chega e apaga depois de um tempo sem movimento.
-- Gestos (7.2, PAJ7620): por enquanto só pelo teclado no modo de teste. O gesto vai cru para
-  o MagicMirror (POST /MMM-Sensores/evento) e o módulo MMM-Sensores traduz conforme a página.
+- Gestos (7.2, PAJ7620 no I²C, ver paj7620.py): o gesto vai cru para o MagicMirror
+  (POST /MMM-Sensores/evento) e o módulo MMM-Sensores traduz conforme a página. Sem o sensor
+  ligado, o serviço segue só com o PIR e tenta achar o PAJ7620 de novo a cada 30 s.
 
 Uso:
   python3 sensord.py            serviço (systemd/sensord.service)
   python3 sensord.py --teste    teclado simula o PIR e os gestos (rodar pelo SSH, com o
                                 serviço parado: sudo systemctl stop sensord)
+  python3 sensord.py --teste --gestos [--pir]   idem, usando também os sensores de verdade
+                                (o log mostra o gesto cru do PAJ7620 e como ficou após a rotação)
 
 Configuração por variáveis de ambiente (todas opcionais):
   SENSORD_PIR_GPIO      pino BCM do OUT do PIR (padrão 17 = pino físico 11; 0 desliga o PIR)
@@ -18,6 +21,10 @@ Configuração por variáveis de ambiente (todas opcionais):
   SENSORD_SAIDA         saída de vídeo (padrão HDMI-A-1)
   SENSORD_MODO          modo de vídeo ao religar com wlr-randr (padrão 1600x900@60Hz)
   SENSORD_TRANSFORM     rotação ao religar com wlr-randr (padrão 270)
+  SENSORD_GESTOS        1 usa o PAJ7620, 0 não (padrão 1)
+  SENSORD_I2C_BUS       barramento I²C do PAJ7620 (padrão 1)
+  SENSORD_PAJ_ROTACAO   graus, sentido horário, em que o sensor foi montado girado (0/90/180/270)
+  SENSORD_PAJ_ESPELHAR  1 troca esquerda/direita (e o sentido dos giros) (padrão 0)
 """
 import argparse
 import json
@@ -29,6 +36,7 @@ import signal
 import subprocess
 import sys
 import termios
+import threading
 import time
 import tty
 import urllib.error
@@ -53,7 +61,7 @@ TECLAS = {
 
 AJUDA = """\
 Modo de teste — teclas:
-  ← → ↑ ↓   gestos de deslizar          h / a   giro horário / anti-horário
+  ← → ↑ ↓   mão para esse lado (← = próxima página)   h / a   giro horário / anti-horário
   f / t     aproximar / afastar         o       aceno
   m         movimento (simula o PIR)    s       estado
   ?         esta ajuda                  q       sair (religa a tela)
@@ -158,6 +166,45 @@ def iniciar_pir(pino: int, fila: queue.Queue):
 	sensor.when_activated = lambda: fila.put(("movimento", None))
 	log(f"PIR no GPIO{pino}")
 	return sensor
+
+
+# ---------------------------------------------------------------------------
+# Gestos (PAJ7620)
+# ---------------------------------------------------------------------------
+def iniciar_gestos(fila: queue.Queue, barramento: int, rotacao: int, espelhar: bool) -> None:
+	from paj7620 import PAJ7620, orientar  # mesmo diretório deste arquivo
+
+	def laco() -> None:
+		sensor = None
+		avisou = False
+		while True:
+			if sensor is None:
+				try:
+					sensor = PAJ7620(barramento)
+				except Exception as e:  # sem o módulo de I²C, sem o sensor, fio solto…
+					if not avisou:
+						log(f"PAJ7620 indisponível ({e}); tentando de novo a cada 30 s")
+						avisou = True
+					time.sleep(30)
+					continue
+				log(f"PAJ7620 pronto (I²C {barramento}, rotação {rotacao}°{', espelhado' if espelhar else ''})")
+				avisou = False
+			try:
+				bruto = sensor.ler()
+			except OSError as e:
+				log(f"PAJ7620 parou de responder ({e})")
+				sensor.fechar()
+				sensor = None
+				continue
+			if bruto:
+				gesto = orientar(bruto, rotacao, espelhar)
+				if gesto != bruto:
+					log(f"PAJ7620: {bruto} → {gesto}")
+				fila.put(("gesto", f"GESTO_{gesto}"))
+				time.sleep(0.3)  # um gesto por vez
+			time.sleep(0.05)
+
+	threading.Thread(target=laco, name="paj7620", daemon=True).start()
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +313,7 @@ def main() -> None:
 	ap = argparse.ArgumentParser(description="Sensores do espelho (PIR e gestos)")
 	ap.add_argument("--teste", action="store_true", help="teclado simula o PIR e os gestos")
 	ap.add_argument("--pir", action="store_true", help="no teste, usar também o PIR de verdade")
+	ap.add_argument("--gestos", action="store_true", help="no teste, usar também o PAJ7620 de verdade")
 	ap.add_argument("--apagar-em", type=int, help="segundos sem movimento até apagar (sobrepõe SENSORD_APAGAR_APOS)")
 	ap.add_argument("--sem-tela", action="store_true", help="não mexe no monitor, só mostra no terminal")
 	args = ap.parse_args()
@@ -283,6 +331,9 @@ def main() -> None:
 	pino = env_int("SENSORD_PIR_GPIO", 17)
 	if pino > 0 and (not args.teste or args.pir):
 		d.pir = iniciar_pir(pino, d.fila)
+	if env_int("SENSORD_GESTOS", 1) and (not args.teste or args.gestos):
+		iniciar_gestos(d.fila, env_int("SENSORD_I2C_BUS", 1), env_int("SENSORD_PAJ_ROTACAO", 0),
+			env_int("SENSORD_PAJ_ESPELHAR", 0) == 1)
 	if d.pir is None and not args.teste and apagar_apos > 0:
 		log("sem PIR: a tela não vai apagar sozinha (senão não acenderia mais)")
 		d.apagar_apos = 0

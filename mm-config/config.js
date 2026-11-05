@@ -3,7 +3,7 @@
  * O deploy.sh cria um link deste arquivo em ~/MagicMirror/config/config.js
  *
  * Páginas (índice MMM-pages):
- *   0 Início | 1 Briefing | 2 Agenda | 3 Cotações
+ *   0 Início | 1 Briefing | 2 Agenda | 3 Cotações | 4 Espelho (só hora e temperatura)
  * Agenda (coluna "Hoje" e página 2): MMM-Agenda, lê o app Projeto Agenda (localhost:8090).
  */
 
@@ -50,11 +50,7 @@ let config = {
 		{
 			module: "alert"
 		},
-		{
-			module: "updatenotification",
-			position: "top_bar",
-			classes: "fixed"
-		},
+		// Sem updatenotification na tela: o scripts/atualizar.sh mostra as atualizações no terminal
 		{
 			module: "clock",
 			position: "top_left",
@@ -152,6 +148,15 @@ let config = {
 			config: { mode: "explorer", categories: QUOTES_CATEGORIES }
 		},
 
+		// ---------- Página 4: Espelho ----------
+		// Só hora e temperatura (sem data e sem as bolinhas de página): o resto do vidro fica livre.
+		// Do Início, um deslizar com a mão para a direita (ou PageUp) volta e cai aqui.
+		{
+			module: "MMM-Espelho",
+			position: "bottom_bar",
+			classes: "page4"
+		},
+
 		// ---------- Controle de páginas ----------
 		{
 			module: "MMM-Nav" // teclado/gestos → troca de página com proteção contra rajadas
@@ -163,7 +168,7 @@ let config = {
 		{
 			module: "MMM-pages",
 			config: {
-				modules: [["page0"], ["page1"], ["page2"], ["page3"]],
+				modules: [["page0"], ["page1"], ["page2"], ["page3"], ["page4"]],
 				fixed: ["fixed", "MMM-Nav", "MMM-Sensores"],
 				// 0 = troca instantânea. Com animação, trocar de página rápido (ou por
 				// gesto) podia deixar um módulo da página anterior visível.

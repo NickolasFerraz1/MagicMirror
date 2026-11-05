@@ -7,3 +7,4 @@ data/*
 data/
 PROXIMOS-PASSOS.md
 APP-TAREFAS.md
+*.pyc

@@ -40,3 +40,6 @@ if node "$REPO/scripts/recarregar-tela.mjs"; then
 else
 	echo "   (tela não recarregada: se o monitor estiver ligado, rode sudo reboot)"
 fi
+
+# Avisos de versão nova (no lugar da faixa do updatenotification na tela)
+bash "$REPO/scripts/verificar-atualizacoes.sh" || true

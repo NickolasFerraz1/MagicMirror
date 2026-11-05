@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Restaura no Pi a configuração que fica fora do MagicMirror (cartão novo / reinstalação).
 # Pré-requisitos: Raspberry Pi OS com labwc, MagicMirror² em ~/MagicMirror, este repo em ~/magic-mirror,
-#                 pacotes wlr-randr, wlrctl, kanshi, wlopm e python3-gpiozero
-#                 (sudo apt install wlr-randr wlrctl kanshi wlopm python3-gpiozero).
+#                 pacotes wlr-randr, wlrctl, kanshi, wlopm, python3-gpiozero, python3-smbus e i2c-tools
+#                 (sudo apt install wlr-randr wlrctl kanshi wlopm python3-gpiozero python3-smbus i2c-tools).
 # Uso: bash ~/magic-mirror/pi/restaurar.sh
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,6 +15,9 @@ cp "$REPO/pi/labwc-autostart" ~/.config/labwc/autostart
 mkdir -p ~/.config/kanshi
 [ -f ~/.config/kanshi/config ] && cp ~/.config/kanshi/config ~/.config/kanshi/config.bak
 cp "$REPO/pi/kanshi-config" ~/.config/kanshi/config
+
+echo "==> I²C (sensor de gestos PAJ7620)"
+sudo raspi-config nonint do_i2c 0
 
 echo "==> config e módulos do MagicMirror (links para o repo)"
 ln -sfn "$REPO/mm-config/config.js" ~/MagicMirror/config/config.js

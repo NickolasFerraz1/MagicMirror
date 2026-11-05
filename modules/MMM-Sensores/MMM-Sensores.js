@@ -9,12 +9,14 @@
 Module.register("MMM-Sensores", {
 	defaults: {
 		voltarAoInicio: true,
-		// Índices do MMM-pages: 0 Início | 1 Briefing | 2 Agenda | 3 Cotações
-		paginas: ["inicio", "briefing", "agenda", "cotacoes"],
-		// Vale em qualquer página (a página específica tem prioridade)
+		// Índices do MMM-pages: 0 Início | 1 Briefing | 2 Agenda | 3 Cotações | 4 Espelho
+		paginas: ["inicio", "briefing", "agenda", "cotacoes", "espelho"],
+		// Vale em qualquer página (a página específica tem prioridade).
+		// Deslizar como no celular: mão para a esquerda = próxima; do Início, mão para a direita
+		// volta e cai na última página (Espelho).
 		todas: {
-			GESTO_DIREITA: "NAV_NEXT_PAGE",
-			GESTO_ESQUERDA: "NAV_PREV_PAGE",
+			GESTO_ESQUERDA: "NAV_NEXT_PAGE",
+			GESTO_DIREITA: "NAV_PREV_PAGE",
 			GESTO_ACENO: "NAV_HOME"
 		},
 		mapa: {
@@ -41,7 +43,8 @@ Module.register("MMM-Sensores", {
 				GESTO_ANTI_HORARIO: "QUOTES_PREV_CATEGORY",
 				GESTO_APROXIMAR: "QUOTES_OPEN",
 				GESTO_AFASTAR: "QUOTES_CLOSE"
-			}
+			},
+			espelho: {} // só troca de página e aceno (Início)
 		}
 	},
 

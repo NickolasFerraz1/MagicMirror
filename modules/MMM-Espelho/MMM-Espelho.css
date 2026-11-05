@@ -1,0 +1,5 @@
+/* Página Espelho: só hora e temperatura */
+body.pagina-espelho .module.clock .date,
+body.pagina-espelho .module.MMM-page-indicator {
+	visibility: hidden;
+}
