@@ -1,0 +1,21 @@
+[Unit]
+Description=Sensores do espelho (PIR e gestos)
+After=magicmirror.service
+Wants=magicmirror.service
+
+[Service]
+User=nickferraz
+# Sessão gráfica do labwc (para ligar/desligar o monitor); 1000 = id -u do nickferraz
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+# Ajustes (opcionais) sem mexer no repo: sudo systemctl edit sensord
+#   [Service]
+#   Environment=SENSORD_APAGAR_APOS=600
+Environment=SENSORD_PIR_GPIO=17
+Environment=SENSORD_APAGAR_APOS=300
+ExecStart=/usr/bin/python3 /home/nickferraz/magic-mirror/sensord/sensord.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -157,10 +157,14 @@ let config = {
 			module: "MMM-Nav" // teclado/gestos → troca de página com proteção contra rajadas
 		},
 		{
+			// Eventos do sensord.py (PIR e gestos) → ação conforme a página; mapa editável em config
+			module: "MMM-Sensores"
+		},
+		{
 			module: "MMM-pages",
 			config: {
 				modules: [["page0"], ["page1"], ["page2"], ["page3"]],
-				fixed: ["fixed", "MMM-Nav"],
+				fixed: ["fixed", "MMM-Nav", "MMM-Sensores"],
 				// 0 = troca instantânea. Com animação, trocar de página rápido (ou por
 				// gesto) podia deixar um módulo da página anterior visível.
 				animationTime: 0,

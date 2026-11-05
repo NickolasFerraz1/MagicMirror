@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Restaura no Pi a configuração que fica fora do MagicMirror (cartão novo / reinstalação).
 # Pré-requisitos: Raspberry Pi OS com labwc, MagicMirror² em ~/MagicMirror, este repo em ~/magic-mirror,
-#                 pacotes wlr-randr, wlrctl e kanshi (sudo apt install wlr-randr wlrctl kanshi).
+#                 pacotes wlr-randr, wlrctl, kanshi, wlopm e python3-gpiozero
+#                 (sudo apt install wlr-randr wlrctl kanshi wlopm python3-gpiozero).
 # Uso: bash ~/magic-mirror/pi/restaurar.sh
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -24,9 +25,10 @@ for mod in "$REPO"/modules/*/; do
 	ln -sfn "${mod%/}" ~/MagicMirror/modules/"$(basename "$mod")"
 done
 
-echo "==> serviços (servidor do MM² e briefing)"
-sudo cp "$REPO"/systemd/magicmirror.service "$REPO"/systemd/briefing.service "$REPO"/systemd/briefing.timer /etc/systemd/system/
+echo "==> serviços (servidor do MM², briefing e sensores)"
+sudo cp "$REPO"/systemd/magicmirror.service "$REPO"/systemd/briefing.service "$REPO"/systemd/briefing.timer \
+	"$REPO"/systemd/sensord.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now magicmirror.service briefing.timer
+sudo systemctl enable --now magicmirror.service briefing.timer sensord.service
 
 echo "==> pronto. Falta à mão: o .env/credenciais do briefing (fora do repo) e sudo reboot."

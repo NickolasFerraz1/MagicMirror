@@ -19,6 +19,10 @@ done
 
 echo "==> reiniciando o servidor"
 sudo systemctl restart magicmirror
+if systemctl is-enabled --quiet sensord 2>/dev/null; then
+	sudo systemctl restart sensord
+	echo "==> sensord reiniciado"
+fi
 
 echo -n "==> aguardando o servidor"
 for _ in $(seq 1 60); do
