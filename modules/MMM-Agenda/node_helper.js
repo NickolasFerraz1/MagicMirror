@@ -4,6 +4,7 @@
  * aqui o Node repassa para a API local e junta o que falta (cor da área).
  *   GET /MMM-Agenda/hoje              → /api/hoje (+ area_cor em atrasados/pendências)
  *   GET /MMM-Agenda/agenda?de=&ate=   → /api/agenda
+ *   GET /MMM-Agenda/planos?limite=    → /api/planos/andamento (etapa atual de cada plano)
  */
 const NodeHelper = require("node_helper");
 
@@ -36,6 +37,15 @@ module.exports = NodeHelper.create({
 			}
 			try {
 				res.set("Cache-Control", "no-store").json(await get(`/api/agenda?de=${de}&ate=${ate}`));
+			} catch (err) {
+				res.status(502).json({ error: `app Agenda indisponível: ${err.message}` });
+			}
+		});
+
+		this.expressApp.get("/MMM-Agenda/planos", async (req, res) => {
+			const limite = Math.min(Math.max(parseInt(req.query.limite, 10) || 3, 1), 10);
+			try {
+				res.set("Cache-Control", "no-store").json(await get(`/api/planos/andamento?limite=${limite}`));
 			} catch (err) {
 				res.status(502).json({ error: `app Agenda indisponível: ${err.message}` });
 			}

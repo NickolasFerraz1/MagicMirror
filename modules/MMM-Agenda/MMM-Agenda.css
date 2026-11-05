@@ -217,3 +217,71 @@ body.agenda-dia-visivel .region.upper.third { top: 14%; }
 .agenda__fora--cima { top: 0; background: linear-gradient(#000, rgb(0 0 0 / 0)); }
 .agenda__fora--baixo { bottom: 0; background: linear-gradient(rgb(0 0 0 / 0), #000); }
 .agenda__dica { color: #555; font-size: 13px; margin-top: 8px; text-align: right; }
+
+/* ---------- Página Agenda: planos (etapa atual) ---------- */
+/* Alturas fixas: o JS desconta 42 + 52 por plano da grade (alturaPlanos) */
+.agenda__planos { margin-bottom: 12px; }
+.agenda__planos .agenda__rotulo { height: 22px; line-height: 22px; margin: 0 0 8px; }
+.agenda__plano {
+	box-sizing: border-box;
+	height: 46px;
+	margin-bottom: 6px;
+	padding: 2px 0 2px 10px;
+	border-left: 3px solid var(--area, #888);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 6px;
+}
+.agenda__plano-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-width: 0; }
+.agenda__plano-nome { color: #fff; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agenda__plano-conta { flex: none; color: #aaa; font-size: 15px; font-variant-numeric: tabular-nums; }
+.agenda__plano-baixo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.agenda__plano-barra { flex: 0 0 120px; height: 4px; border-radius: 2px; background: #333; overflow: hidden; }
+.agenda__plano-barra span { display: block; height: 100%; background: var(--area, #888); }
+.agenda__plano-prox { color: #888; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Página Agenda: mês ---------- */
+.agenda__mes { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: 6px; row-gap: 4px; }
+.agenda__msem {
+	align-self: end;
+	padding-bottom: 4px;
+	color: #777;
+	font-size: 14px;
+	letter-spacing: .08em;
+	text-align: center;
+	text-transform: uppercase;
+}
+.agenda__mdia {
+	min-width: 0;
+	overflow: hidden;
+	padding: 4px 2px 0;
+	border-top: 1px solid #333;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.agenda__mnum { color: #bbb; font-size: 16px; font-variant-numeric: tabular-nums; }
+.agenda__mdia.is-fora { opacity: .3; }
+.agenda__mdia.is-passado .agenda__mnum { color: #666; }
+.agenda__mdia.is-hoje { border-top: 2px solid #ff5a5a; background: rgb(255 255 255 / .05); }
+.agenda__mdia.is-hoje .agenda__mnum { color: #fff; font-weight: 600; }
+.agenda__mtit {
+	padding-left: 5px;
+	border-left: 3px solid var(--area, #888);
+	color: #ddd;
+	font-size: 14px;
+	line-height: 1.25;
+	/* até 2 linhas por título (a célula tem altura de sobra) */
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	flex: none;
+}
+.agenda__mdia.is-passado .agenda__mtit { color: #999; }
+.agenda__mtit.is-done { opacity: .4; text-decoration: line-through; }
+.agenda__mtit.is-skip { opacity: .4; font-style: italic; }
+.agenda__mtit.is-past { color: #ffb3b3; border-left-color: #ff6b6b; }
+.agenda__mmais { color: #888; font-size: 13px; }

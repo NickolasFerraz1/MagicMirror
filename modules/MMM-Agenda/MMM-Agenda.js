@@ -3,17 +3,20 @@
  * Modos (uma instância por modo no config.js):
  *   mode: "today" → página Início, coluna "Hoje": próximas atividades, atrasados e pendências
  *   mode: "day"   → página Agenda: grade do dia (00:00–24:00) com os horários livres;
- *                   se não couber, a janela começa na hora atual e "rola" com o tempo
+ *                   se não couber, a janela começa na hora atual e "rola" com o tempo.
+ *                   Alterna com a visão de mês (até 2 títulos por dia + "+N").
+ *                   No topo: etapa atual dos planos (/api/planos/andamento).
  *   mode: "week"  → lista de 7 dias (alternativa à grade)
  *
  * Navegação (notificações; o sensord.py vai enviá-las):
- *   AGENDA_NEXT / AGENDA_PREV          → dia (ou semana) seguinte/anterior
+ *   AGENDA_NEXT / AGENDA_PREV          → dia (ou semana; no mês: mês) seguinte/anterior
  *   AGENDA_NEXT_WEEK / AGENDA_PREV_WEEK → pula 7 dias (no modo "day")
  *   AGENDA_SCROLL_UP / AGENDA_SCROLL_DOWN → rola a grade do dia (scrollStep horas)
  *   AGENDA_TODAY                        → volta para hoje
  *   AGENDA_GOTO_DATE, payload "AAAA-MM-DD" → abre um dia específico
- * Teclado: ←/→ dia, ↑/↓ rola a grade (no "week": semana), 0 hoje. (Troca de página: MMM-Nav.)
- * Parado por resetAfter, volta sozinho para hoje e para a rolagem automática.
+ *   AGENDA_VIEW_MONTH / AGENDA_VIEW_DAY / AGENDA_TOGGLE_VIEW → mês / dia / alterna (modo "day")
+ * Teclado: ←/→ dia (no mês: mês), ↑/↓ rola a grade (no "week": semana), M mês/dia, 0 hoje.
+ * (Troca de página: MMM-Nav.) Parado por resetAfter, volta sozinho para o dia de hoje.
  * Os dados vêm do node_helper (rotas /MMM-Agenda/*), que repassa para a API local.
  */
 Module.register("MMM-Agenda", {
@@ -29,6 +32,8 @@ Module.register("MMM-Agenda", {
 		freeTo: 23, //  …até esta (madrugada não conta como horário vago)
 		minFree: 60, // day: menor intervalo (min) marcado como livre
 		scrollStep: 3, // day: horas por toque em ↑/↓
+		maxPlans: 3, // day: planos no topo (etapa atual); 0 = não mostra
+		monthTitles: 2, // day (mês): títulos por dia; o resto vira "+N"
 		keyboard: true,
 		refreshInterval: 60 * 1000, // também redesenha (destaque do "agora" e rolagem)
 		resetAfter: 2 * 60 * 1000 // day/week: volta para hoje depois de um tempo parado
@@ -40,10 +45,17 @@ Module.register("MMM-Agenda", {
 		this.offset = 0; // dias (day) ou semanas (week) a partir de hoje
 		this.lastMove = 0;
 		this.rolagem = 0; // day: horas roladas à mão (relativas à janela automática)
+		this.vista = "dia"; // day: "dia" | "mes"
+		this.mes = 0; // day (mês): meses a partir do mês de hoje
+		this.planos = [];
 		this.navega = ["day", "week"].includes(this.config.mode);
 		this.load();
 		setInterval(() => {
-			if (this.navega && (this.offset || this.rolagem) && Date.now() - this.lastMove > this.config.resetAfter) this.offset = this.rolagem = 0;
+			const mexido = this.offset || this.rolagem || this.mes || this.vista !== "dia";
+			if (this.navega && mexido && Date.now() - this.lastMove > this.config.resetAfter) {
+				this.offset = this.rolagem = this.mes = 0;
+				this.vista = "dia";
+			}
 			this.load();
 		}, this.config.refreshInterval);
 		if (this.navega && this.config.keyboard) this.bindKeys();
@@ -81,12 +93,31 @@ Module.register("MMM-Agenda", {
 	},
 
 	range() {
+		if (this.config.mode === "day" && this.vista === "mes") return this.rangeMes();
 		const de = new Date();
 		de.setHours(0, 0, 0, 0);
 		const span = this.config.mode === "day" ? 1 : this.config.days;
 		de.setDate(de.getDate() + this.offset * span);
 		const ate = new Date(de);
 		ate.setDate(ate.getDate() + span - 1);
+		return [de, ate];
+	},
+
+	/** Mês exibido (dia 1) e a grade completa: da segunda antes do dia 1 ao domingo depois do último. */
+	refMes() {
+		const ref = new Date();
+		ref.setHours(0, 0, 0, 0);
+		ref.setDate(1);
+		ref.setMonth(ref.getMonth() + this.mes);
+		return ref;
+	},
+
+	rangeMes() {
+		const ref = this.refMes();
+		const de = new Date(ref);
+		de.setDate(1 - ((ref.getDay() + 6) % 7));
+		const ate = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+		ate.setDate(ate.getDate() + (6 - ((ate.getDay() + 6) % 7)));
 		return [de, ate];
 	},
 
@@ -107,8 +138,18 @@ Module.register("MMM-Agenda", {
 			this.error = err.message;
 			Log.warn(`[MMM-Agenda] ${err.message}`);
 		}
+		if (this.config.mode === "day" && this.config.maxPlans > 0) await this.loadPlanos();
 		// Sem animação: ver o comentário do MMM-Briefing (MMM-pages + updateDom animado)
 		this.updateDom(0);
+	},
+
+	async loadPlanos() {
+		try {
+			const res = await fetch(`MMM-Agenda/planos?limite=${this.config.maxPlans}`, { cache: "no-store" });
+			if (res.ok) this.planos = await res.json();
+		} catch (err) {
+			Log.warn(`[MMM-Agenda] planos: ${err.message}`); // mantém os anteriores
+		}
 	},
 
 	notificationReceived(notification, payload) {
@@ -116,12 +157,16 @@ Module.register("MMM-Agenda", {
 		this.notificationReceivedAlways(notification, payload);
 		if (!this.navega || this.hidden) return;
 		const semana = this.config.mode === "day" ? 7 : 1;
-		if (notification === "AGENDA_NEXT") this.move(1);
-		if (notification === "AGENDA_PREV") this.move(-1);
-		if (notification === "AGENDA_NEXT_WEEK") this.move(semana);
-		if (notification === "AGENDA_PREV_WEEK") this.move(-semana);
+		const mes = this.vista === "mes";
+		if (notification === "AGENDA_NEXT") (mes ? this.mudarMes(1) : this.move(1));
+		if (notification === "AGENDA_PREV") (mes ? this.mudarMes(-1) : this.move(-1));
+		if (notification === "AGENDA_NEXT_WEEK" && !mes) this.move(semana);
+		if (notification === "AGENDA_PREV_WEEK" && !mes) this.move(-semana);
 		if (notification === "AGENDA_SCROLL_UP") this.rolar(-1);
 		if (notification === "AGENDA_SCROLL_DOWN") this.rolar(1);
+		if (notification === "AGENDA_VIEW_MONTH") this.verMes(true);
+		if (notification === "AGENDA_VIEW_DAY") this.verMes(false);
+		if (notification === "AGENDA_TOGGLE_VIEW") this.verMes(!mes);
 		if (notification === "AGENDA_TODAY" || notification === "AGENDA_THIS_WEEK") this.move(0, true);
 	},
 
@@ -130,16 +175,20 @@ Module.register("MMM-Agenda", {
 		if (notification !== "AGENDA_GOTO_DATE" || this.config.mode !== "day" || !/^\d{4}-\d{2}-\d{2}$/.test(payload || "")) return;
 		const hoje = new Date();
 		hoje.setHours(0, 0, 0, 0);
-		this.move(Math.round((this.parse(payload) - hoje) / 86400000) - this.offset);
+		this.vista = "dia";
+		this.move(Math.round((this.parse(payload) - hoje) / 86400000) - this.offset, false, true);
 	},
 
 	bindKeys() {
 		const dia = this.config.mode === "day";
+		const mes = () => this.vista === "mes";
 		const keys = {
-			ArrowRight: () => this.move(1),
-			ArrowLeft: () => this.move(-1),
+			ArrowRight: () => (mes() ? this.mudarMes(1) : this.move(1)),
+			ArrowLeft: () => (mes() ? this.mudarMes(-1) : this.move(-1)),
 			ArrowUp: () => (dia ? this.rolar(-1) : this.move(-1)),
 			ArrowDown: () => (dia ? this.rolar(1) : this.move(1)),
+			m: () => dia && this.verMes(!mes()),
+			M: () => dia && this.verMes(!mes()),
 			0: () => this.move(0, true)
 		};
 		document.addEventListener("keydown", (e) => {
@@ -150,17 +199,41 @@ Module.register("MMM-Agenda", {
 	},
 
 	rolar(dir) {
-		if (this.config.mode !== "day") return;
+		if (this.config.mode !== "day" || this.vista === "mes") return;
 		this.rolagem += dir * this.config.scrollStep;
 		this.lastMove = Date.now();
 		this.updateDom(0);
 	},
 
-	move(dir, reset = false) {
+	move(dir, reset = false, forcar = false) {
 		const novo = reset ? 0 : this.offset + dir;
-		if (novo === this.offset && !(reset && this.rolagem)) return;
+		const voltaDoMes = reset && (this.vista !== "dia" || this.mes);
+		if (novo === this.offset && !(reset && this.rolagem) && !voltaDoMes && !forcar) return;
+		if (reset) {
+			this.vista = "dia";
+			this.mes = 0;
+		}
 		this.offset = novo;
 		this.rolagem = 0;
+		this.lastMove = Date.now();
+		this.load();
+	},
+
+	/** Mês ↔ dia. Ao abrir o mês, mostra o mês do dia que estava na tela. */
+	verMes(ligar) {
+		if (this.config.mode !== "day" || (this.vista === "mes") === ligar) return;
+		if (ligar) {
+			const [dia] = this.range();
+			const hoje = new Date();
+			this.mes = (dia.getFullYear() - hoje.getFullYear()) * 12 + dia.getMonth() - hoje.getMonth();
+		}
+		this.vista = ligar ? "mes" : "dia";
+		this.lastMove = Date.now();
+		this.load();
+	},
+
+	mudarMes(dir) {
+		this.mes += dir;
 		this.lastMove = Date.now();
 		this.load();
 	},
@@ -180,7 +253,10 @@ Module.register("MMM-Agenda", {
 			return root;
 		}
 		if (this.error) root.appendChild(this.el("div", "agenda__erro", "sem conexão com o app · dados anteriores"));
-		if (this.config.mode === "day") return this.renderDay(root);
+		if (this.config.mode === "day") {
+			this.renderPlanos(root);
+			return this.vista === "mes" ? this.renderMonth(root) : this.renderDay(root);
+		}
 		return this.config.mode === "week" ? this.renderWeek(root) : this.renderToday(root);
 	},
 
@@ -312,6 +388,112 @@ Module.register("MMM-Agenda", {
 		return root;
 	},
 
+	// ---------- Planos (topo da página Agenda) ----------
+	/** Altura fixa do bloco de planos (o CSS usa as mesmas medidas): rótulo 30 + 52 por plano + 12 de margem. */
+	alturaPlanos() {
+		const n = Math.min(this.planos.length, this.config.maxPlans);
+		return n ? 42 + n * 52 : 0;
+	},
+
+	/** Altura disponível para a grade do dia ou do mês (descontando os planos). */
+	alturaUtil() {
+		const base = this.config.gridHeight > 1 ? this.config.gridHeight : Math.round(window.innerHeight * this.config.gridHeight);
+		return base - this.alturaPlanos();
+	},
+
+	/** "hoje 19:00", "amanhã 19:00", "qui 19:00" (próximos 6 dias) ou "12/11 19:00". */
+	quando(s) {
+		const d = this.parse(s);
+		const hoje = new Date();
+		hoje.setHours(0, 0, 0, 0);
+		const dia = new Date(d);
+		dia.setHours(0, 0, 0, 0);
+		const diff = Math.round((dia - hoje) / 86400000);
+		const hora = this.hhmm(s);
+		if (diff === 0) return `hoje ${hora}`;
+		if (diff === 1) return `amanhã ${hora}`;
+		if (diff > 1 && diff < 7) return `${d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")} ${hora}`;
+		return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} ${hora}`;
+	},
+
+	renderPlanos(root) {
+		const planos = this.planos.slice(0, this.config.maxPlans);
+		if (!planos.length) return;
+		const bloco = this.el("div", "agenda__planos");
+		bloco.appendChild(this.el("div", "agenda__rotulo", "Planos"));
+		for (const p of planos) {
+			const linha = this.el("div", "agenda__plano");
+			linha.style.setProperty("--area", p.area_cor);
+			const topo = this.el("div", "agenda__plano-topo");
+			topo.appendChild(this.el("span", "agenda__plano-nome", p.etapa ? `${p.nome} · ${p.etapa}` : p.nome));
+			if (p.tarefas_total) topo.appendChild(this.el("span", "agenda__plano-conta", `${p.tarefas_feitas} de ${p.tarefas_total}`));
+			linha.appendChild(topo);
+
+			const baixo = this.el("div", "agenda__plano-baixo");
+			const pct = p.etapa_progresso ?? (p.tarefas_total ? (100 * p.tarefas_feitas) / p.tarefas_total : 0);
+			const barra = this.el("span", "agenda__plano-barra");
+			const cheio = this.el("span");
+			cheio.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+			barra.appendChild(cheio);
+			baixo.appendChild(barra);
+			if (p.proxima) {
+				const quando = p.proxima.inicio ? ` · ${this.quando(p.proxima.inicio)}` : "";
+				baixo.appendChild(this.el("span", "agenda__plano-prox", `próxima: ${p.proxima.titulo}${quando}`));
+			}
+			linha.appendChild(baixo);
+			bloco.appendChild(linha);
+		}
+		root.appendChild(bloco);
+	},
+
+	// ---------- Mês ----------
+	renderMonth(root) {
+		const [de, ate] = this.rangeMes();
+		const ref = this.refMes();
+		const hoje = new Date();
+		hoje.setHours(0, 0, 0, 0);
+
+		const porDia = {};
+		for (const e of this.data_) (porDia[e.data] ||= []).push(e);
+		const noMes = this.data_.filter((e) => this.parse(e.data).getMonth() === ref.getMonth()).length;
+
+		const head = this.el("div", "agenda__head");
+		const nome = ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+		head.appendChild(this.el("span", "agenda__titulo", nome[0].toUpperCase() + nome.slice(1)));
+		head.appendChild(this.el("span", "agenda__periodo", noMes ? `${noMes} ${noMes === 1 ? "item" : "itens"}` : "mês livre"));
+		root.appendChild(head);
+
+		const semanas = Math.round((ate - de) / 86400000 + 1) / 7;
+		const grade = this.el("div", "agenda__mes");
+		for (const d of ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]) grade.appendChild(this.el("div", "agenda__msem", d));
+		const linha = Math.floor((this.alturaUtil() - 28 - semanas * 4) / semanas); // 4 = gap entre as linhas
+		grade.style.gridTemplateRows = `28px repeat(${semanas}, ${linha}px)`;
+
+		const agora = new Date();
+		const max = this.config.monthTitles;
+		for (let d = new Date(de); d <= ate; d.setDate(d.getDate() + 1)) {
+			const entradas = porDia[this.iso(d)] || [];
+			const cls = ["agenda__mdia"];
+			if (d.getMonth() !== ref.getMonth()) cls.push("is-fora");
+			if (d.getTime() === hoje.getTime()) cls.push("is-hoje");
+			else if (d < hoje) cls.push("is-passado");
+			const cel = this.el("div", cls.join(" "));
+			cel.appendChild(this.el("span", "agenda__mnum", String(d.getDate())));
+			for (const e of entradas.slice(0, max)) {
+				const fixo = { concluido: "done", pulado: "skip" }[e.status];
+				const st = d.getTime() === hoje.getTime() ? this.state(e, agora) : fixo || "";
+				const t = this.el("span", `agenda__mtit${st ? ` is-${st}` : ""}`, e.titulo);
+				t.style.setProperty("--area", e.area_cor);
+				cel.appendChild(t);
+			}
+			if (entradas.length > max) cel.appendChild(this.el("span", "agenda__mmais", `+${entradas.length - max}`));
+			grade.appendChild(cel);
+		}
+		root.appendChild(grade);
+		if (this.mes) root.appendChild(this.el("div", "agenda__dica", "volta para o dia de hoje sozinho em 2 min"));
+		return root;
+	},
+
 	// ---------- Grade do dia ----------
 	minutos(s) {
 		return Number(s.slice(11, 13)) * 60 + Number(s.slice(14, 16));
@@ -412,7 +594,7 @@ Module.register("MMM-Agenda", {
 		}
 
 		// Janela visível: hoje começa 1h antes de agora; outros dias, 1h antes do 1º item (ou 07:00)
-		const alturaJanela = Math.min(total, this.config.gridHeight > 1 ? this.config.gridHeight : Math.round(window.innerHeight * this.config.gridHeight) - (diaTodo.length ? 44 : 0));
+		const alturaJanela = Math.min(total, this.alturaUtil() - (diaTodo.length ? 44 : 0));
 		const inicioDesejado = ehHoje ? agoraMin - 60 : (blocos.length ? blocos[0].ini - 60 : 7 * 60);
 		const limita = (y) => Math.max(0, Math.min(total - alturaJanela, y));
 		const base = limita(px(Math.floor(inicioDesejado / 60) * 60));
