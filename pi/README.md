@@ -41,5 +41,7 @@ Tailscale também é à parte (`sudo tailscale up` + `sudo tailscale serve --bg 
   se esquerda/direita vierem trocadas, `SENSORD_PAJ_ESPELHAR=1` (`sudo systemctl edit sensord`).
 - Troca de página: `node ~/magic-mirror/scripts/checar-pagina.mjs` (estado), `… gesto GESTO_ESQUERDA` (meio e fim
   da animação) e `… rajada GESTO_ESQUERDA 8 60` (rajada); código de saída 1 se sobrar módulo de outra página.
+  Medir o desenho de uma troca (quadros, tarefas longas, tempos, cópias): `node ~/magic-mirror/scripts/medir-troca.mjs --anim off --de 2`
+  (troca seca) e `… --anim on --de 2` (deslizando); a animação só muda durante a medição.
 - Mudou algo no `~/bin/kiosk.sh` direto no Pi? Copie de volta para `pi/kiosk.sh` e faça commit —
   este repo é a fonte da verdade.

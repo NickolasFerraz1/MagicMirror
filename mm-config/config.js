@@ -169,7 +169,7 @@ let config = {
 			// Troca de página "deslizando" (feita por fora do MMM-pages, que segue instantâneo).
 			// Tem que ficar ANTES do MMM-pages: copia a página atual antes de ela ser escondida.
 			module: "MMM-Deslizar",
-			config: { slideAnimation: true, slideMs: 300 }
+			config: { slideAnimation: false, slideMs: 300 } // desligado: no Pi ficou pior que a troca seca (em medição)
 		},
 		{
 			module: "MMM-pages",

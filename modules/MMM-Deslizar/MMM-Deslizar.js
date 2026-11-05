@@ -19,7 +19,7 @@
  */
 Module.register("MMM-Deslizar", {
 	defaults: {
-		slideAnimation: true, // false = trocas secas, como antes
+		slideAnimation: false, // desligado até validar no monitor; true = troca deslizando
 		slideMs: 300, // duração (250–350 fica natural)
 		slideDistance: 0.35, // deslocamento, em fração da largura da tela
 		easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", // ease-out
