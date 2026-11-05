@@ -166,12 +166,19 @@ let config = {
 			module: "MMM-Sensores"
 		},
 		{
+			// Troca de página "deslizando" (feita por fora do MMM-pages, que segue instantâneo).
+			// Tem que ficar ANTES do MMM-pages: copia a página atual antes de ela ser escondida.
+			module: "MMM-Deslizar",
+			config: { slideAnimation: true, slideMs: 300 }
+		},
+		{
 			module: "MMM-pages",
 			config: {
 				modules: [["page0"], ["page1"], ["page2"], ["page3"], ["page4"]],
-				fixed: ["fixed", "MMM-Nav", "MMM-Sensores"],
+				fixed: ["fixed", "MMM-Nav", "MMM-Sensores", "MMM-Deslizar"],
 				// 0 = troca instantânea. Com animação, trocar de página rápido (ou por
-				// gesto) podia deixar um módulo da página anterior visível.
+				// gesto) podia deixar um módulo da página anterior visível. O "deslizar"
+				// fica por conta do MMM-Deslizar, só visual: manter 0 aqui.
 				animationTime: 0,
 				// Sem rotação automática: troca por teclado (PageUp/PageDown) e,
 				// depois, pelos gestos do PAJ7620.

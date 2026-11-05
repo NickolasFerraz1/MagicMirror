@@ -39,5 +39,7 @@ Tailscale também é à parte (`sudo tailscale up` + `sudo tailscale serve --bg 
 - Calibrar os gestos: `sudo systemctl stop sensord && python3 ~/magic-mirror/sensord/sensord.py --teste --gestos`.
   O log mostra cada gesto; se as direções vierem giradas, ajuste `SENSORD_PAJ_ROTACAO` (90/180/270) e,
   se esquerda/direita vierem trocadas, `SENSORD_PAJ_ESPELHAR=1` (`sudo systemctl edit sensord`).
+- Troca de página: `node ~/magic-mirror/scripts/checar-pagina.mjs` (estado), `… gesto GESTO_ESQUERDA` (meio e fim
+  da animação) e `… rajada GESTO_ESQUERDA 8 60` (rajada); código de saída 1 se sobrar módulo de outra página.
 - Mudou algo no `~/bin/kiosk.sh` direto no Pi? Copie de volta para `pi/kiosk.sh` e faça commit —
   este repo é a fonte da verdade.

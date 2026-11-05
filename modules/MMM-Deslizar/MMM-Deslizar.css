@@ -1,0 +1,32 @@
+/* MMM-Deslizar — só transform e opacity (GPU), sem blur nem sombra */
+@keyframes deslizar-sai {
+	from { transform: translate3d(0, 0, 0); opacity: 1; }
+	to { transform: translate3d(var(--deslizar-para, -300px), 0, 0); opacity: 0; }
+}
+
+@keyframes deslizar-entra {
+	from { transform: translate3d(var(--deslizar-de, 300px), 0, 0); opacity: 0; }
+	to { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+/* Cópia da página que sai (posição fixa na tela; some no fim) */
+.deslizar-fantasma {
+	box-sizing: border-box;
+	margin: 0 !important;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 1;
+	will-change: transform, opacity;
+	animation: deslizar-sai var(--deslizar-ms, 300ms) var(--deslizar-easing, ease-out) both;
+}
+
+/* Módulos reais da página que entra (a classe sai no fim da animação) */
+.deslizar-entra {
+	will-change: transform, opacity;
+	animation: deslizar-entra var(--deslizar-ms, 300ms) var(--deslizar-easing, ease-out) both;
+}
+
+/* O conteúdo deslocado para fora da tela não pode criar barra de rolagem */
+body {
+	overflow-x: hidden;
+}
