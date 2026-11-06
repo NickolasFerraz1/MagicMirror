@@ -8,6 +8,7 @@ Tudo o que o espelho precisa e que não fica dentro de `~/MagicMirror`, para rec
 | `pi/kiosk.sh` | `~/bin/kiosk.sh` | Abre o Chromium em quiosque: tela em pé (1600x900 girada 270°), sem barra de tarefas, cursor escondido, porta 9222 para recarregar a tela por script |
 | `pi/labwc-autostart` | `~/.config/labwc/autostart` | Chama o `kiosk.sh` quando a sessão gráfica sobe |
 | `pi/kanshi-config` | `~/.config/kanshi/config` | Reaplica a rotação (e esconde o cursor) quando o monitor é desligado/religado |
+| `pi/edid-espelho.bin` | `/lib/firmware/edid/espelho.bin` + `cmdline.txt` | Identificação (EDID) do monitor fixa no boot: `drm.edid_firmware=HDMI-A-1:edid/espelho.bin video=HDMI-A-1:1600x900@60D`. Sem ela, se o Pi não lê o EDID ao religar o monitor, a tela volta em 1024x768 deitada |
 | `systemd/magicmirror.service` | `/etc/systemd/system/` | Servidor do MagicMirror² (`npm run server`); a tela é o Chromium acima |
 | `systemd/briefing.*` | `/etc/systemd/system/` | Atualização do briefing |
 | `systemd/sensord.service` | `/etc/systemd/system/` | `sensord/sensord.py` (+ `paj7620.py`): PIR apaga/acende o monitor (wlopm) e gestos do PAJ7620 → MagicMirror |
@@ -39,5 +40,9 @@ Tailscale também é à parte (`sudo tailscale up` + `sudo tailscale serve --bg 
 - Calibrar os gestos: `sudo systemctl stop sensord && python3 ~/magic-mirror/sensord/sensord.py --teste --gestos`.
   O log mostra cada gesto; se as direções vierem giradas, ajuste `SENSORD_PAJ_ROTACAO` (90/180/270) e,
   se esquerda/direita vierem trocadas, `SENSORD_PAJ_ESPELHAR=1` (`sudo systemctl edit sensord`).
+- Tela deitada / em 1024x768: `wlr-randr | grep -E "Model|current"` (com `WAYLAND_DISPLAY=wayland-0
+  XDG_RUNTIME_DIR=/run/user/$(id -u)`). Com o EDID fixo isso não deve voltar; para corrigir na hora:
+  `wlr-randr --output HDMI-A-1 --custom-mode 1600x900@60 --transform 270`. Para desfazer o EDID fixo:
+  `sudo cp /boot/firmware/cmdline.txt.bak /boot/firmware/cmdline.txt` e reboot.
 - Mudou algo no `~/bin/kiosk.sh` direto no Pi? Copie de volta para `pi/kiosk.sh` e faça commit —
   este repo é a fonte da verdade.

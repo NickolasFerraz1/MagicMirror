@@ -16,6 +16,21 @@ mkdir -p ~/.config/kanshi
 [ -f ~/.config/kanshi/config ] && cp ~/.config/kanshi/config ~/.config/kanshi/config.bak
 cp "$REPO/pi/kanshi-config" ~/.config/kanshi/config
 
+echo "==> identificação do monitor fixa no boot (EDID)"
+# Sem isso, se o monitor for desligado/religado e o Pi não conseguir ler a identificação, a tela
+# volta em 1024x768 deitada (o kanshi não acha 1600x900 e não gira).
+if [ -f "$REPO/pi/edid-espelho.bin" ]; then
+	sudo mkdir -p /lib/firmware/edid
+	sudo cp "$REPO/pi/edid-espelho.bin" /lib/firmware/edid/espelho.bin
+	if ! grep -q "drm.edid_firmware=" /boot/firmware/cmdline.txt; then
+		sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak
+		sudo sed -i '1 s/$/ drm.edid_firmware=HDMI-A-1:edid\/espelho.bin video=HDMI-A-1:1600x900@60D/' /boot/firmware/cmdline.txt
+	fi
+	sudo update-initramfs -u 2>/dev/null || true
+else
+	echo "   (pi/edid-espelho.bin não está no repo: pulei)"
+fi
+
 echo "==> I²C (sensor de gestos PAJ7620)"
 sudo raspi-config nonint do_i2c 0
 
